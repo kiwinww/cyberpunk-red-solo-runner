@@ -1,0 +1,1201 @@
+{
+  "streets-1": [
+    {
+      "id": "streets-1-index-1",
+      "title": "搞到门票",
+      "page": 8,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 11,
+      "nextSceneIds": [
+        "streets-1-index-4",
+        "streets-1-index-2"
+      ]
+    },
+    {
+      "id": "streets-1-index-2",
+      "title": "歌剧院之夜",
+      "page": 8,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 11,
+      "nextSceneIds": [
+        "streets-1-index-3"
+      ]
+    },
+    {
+      "id": "streets-1-index-3",
+      "title": "面条与情报",
+      "page": 11,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 12,
+      "nextSceneIds": [
+        "streets-1-index-4",
+        "streets-1-index-5"
+      ]
+    },
+    {
+      "id": "streets-1-index-4",
+      "title": "空白办公时间",
+      "page": 12,
+      "optional": true,
+      "phase": "investigation",
+      "endPage": 13,
+      "nextSceneIds": [
+        "streets-1-index-5",
+        "streets-1-index-6"
+      ]
+    },
+    {
+      "id": "streets-1-index-5",
+      "title": "黑暗与光明",
+      "page": 12,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 13,
+      "nextSceneIds": [
+        "streets-1-index-6"
+      ]
+    },
+    {
+      "id": "streets-1-index-6",
+      "title": "怪物猎杀",
+      "page": 13,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 15,
+      "nextSceneIds": [
+        "streets-1-index-7"
+      ]
+    },
+    {
+      "id": "streets-1-index-7",
+      "title": "尾声",
+      "page": 15,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 16,
+      "nextSceneIds": []
+    }
+  ],
+  "streets-2": [
+    {
+      "id": "streets-2-index-1",
+      "title": "格格不入",
+      "page": 23,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 26,
+      "nextSceneIds": [
+        "streets-2-index-8",
+        "streets-2-index-11",
+        "streets-2-index-2"
+      ]
+    },
+    {
+      "id": "streets-2-index-2",
+      "title": "备战",
+      "page": 26,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 27,
+      "nextSceneIds": [
+        "streets-2-index-3",
+        "streets-2-index-4"
+      ]
+    },
+    {
+      "id": "streets-2-index-3",
+      "title": "守门人",
+      "page": 26,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 27,
+      "nextSceneIds": [
+        "streets-2-index-4"
+      ]
+    },
+    {
+      "id": "streets-2-index-4",
+      "title": "高端场所",
+      "page": 27,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 28,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-2-index-5",
+      "title": "怪奇档案",
+      "page": 28,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 29,
+      "nextSceneIds": [
+        "streets-2-index-6"
+      ]
+    },
+    {
+      "id": "streets-2-index-6",
+      "title": "吃霸王餐",
+      "page": 29,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 30,
+      "nextSceneIds": [
+        "streets-2-index-14"
+      ]
+    },
+    {
+      "id": "streets-2-index-7",
+      "title": "审讯",
+      "page": 30,
+      "optional": true,
+      "phase": "investigation",
+      "endPage": 32,
+      "nextSceneIds": [
+        "streets-2-index-16"
+      ]
+    },
+    {
+      "id": "streets-2-index-8",
+      "title": "死路一条",
+      "page": 30,
+      "optional": true,
+      "phase": "investigation",
+      "endPage": 32,
+      "nextSceneIds": [
+        "streets-2-index-14"
+      ]
+    },
+    {
+      "id": "streets-2-index-9",
+      "title": "强行闯入",
+      "page": 30,
+      "optional": true,
+      "phase": "escalation",
+      "endPage": 32,
+      "nextSceneIds": [
+        "streets-2-index-14"
+      ]
+    },
+    {
+      "id": "streets-2-index-10",
+      "title": "正面对峙",
+      "page": 32,
+      "optional": true,
+      "phase": "escalation",
+      "endPage": 33,
+      "nextSceneIds": [
+        "streets-2-index-14"
+      ]
+    },
+    {
+      "id": "streets-2-index-11",
+      "title": "天才技工",
+      "page": 32,
+      "optional": true,
+      "phase": "investigation",
+      "endPage": 33,
+      "nextSceneIds": [
+        "streets-2-index-12"
+      ]
+    },
+    {
+      "id": "streets-2-index-12",
+      "title": "谈判解决",
+      "page": 32,
+      "optional": true,
+      "phase": "escalation",
+      "endPage": 33,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-2-index-13",
+      "title": "富人自有不同",
+      "page": 33,
+      "optional": true,
+      "phase": "investigation",
+      "endPage": 34,
+      "nextSceneIds": [
+        "streets-2-index-16"
+      ]
+    },
+    {
+      "id": "streets-2-index-14",
+      "title": "今夜爆头",
+      "page": 33,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 34,
+      "nextSceneIds": [
+        "streets-2-index-15"
+      ]
+    },
+    {
+      "id": "streets-2-index-15",
+      "title": "“踹屁股帮”情报",
+      "page": 34,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 35,
+      "nextSceneIds": [
+        "streets-2-index-16",
+        "streets-2-index-17",
+        "streets-2-index-19"
+      ]
+    },
+    {
+      "id": "streets-2-index-16",
+      "title": "永不分离",
+      "page": 34,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 35,
+      "nextSceneIds": [
+        "streets-2-index-17",
+        "streets-2-index-18",
+        "streets-2-index-19"
+      ]
+    },
+    {
+      "id": "streets-2-index-17",
+      "title": "至死不渝",
+      "page": 35,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 36,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-2-index-18",
+      "title": "骗局照旧",
+      "page": 35,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 36,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-2-index-19",
+      "title": "假面破碎",
+      "page": 35,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 36,
+      "nextSceneIds": []
+    }
+  ],
+  "streets-3": [
+    {
+      "id": "streets-3-index-1",
+      "title": "对手小队",
+      "page": 40,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 41,
+      "nextSceneIds": [
+        "streets-3-index-2"
+      ]
+    },
+    {
+      "id": "streets-3-index-2",
+      "title": "试镜",
+      "page": 41,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 42,
+      "nextSceneIds": [
+        "streets-3-index-3"
+      ]
+    },
+    {
+      "id": "streets-3-index-3",
+      "title": "剧透脚本",
+      "page": 42,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 44,
+      "nextSceneIds": [
+        "streets-3-index-4"
+      ]
+    },
+    {
+      "id": "streets-3-index-4",
+      "title": "有机饮食",
+      "page": 42,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 44,
+      "nextSceneIds": [
+        "streets-3-index-5"
+      ]
+    },
+    {
+      "id": "streets-3-index-5",
+      "title": "去找巴克",
+      "page": 44,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 45,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-3-index-6",
+      "title": "流血即头条",
+      "page": 44,
+      "optional": true,
+      "phase": "investigation",
+      "endPage": 45,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-3-index-7",
+      "title": "蛇呃呃呃呃呃呃呃！",
+      "page": 45,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 46,
+      "nextSceneIds": [
+        "streets-3-index-8"
+      ]
+    },
+    {
+      "id": "streets-3-index-8",
+      "title": "秘密会面",
+      "page": 46,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 47,
+      "nextSceneIds": [
+        "streets-3-index-9"
+      ]
+    },
+    {
+      "id": "streets-3-index-9",
+      "title": "可爱的房子",
+      "page": 47,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 50,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-3-index-10",
+      "title": "聚光灯下",
+      "page": 50,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 51,
+      "nextSceneIds": []
+    }
+  ],
+  "streets-4": [
+    {
+      "id": "streets-4-index-1",
+      "title": "任务",
+      "page": 55,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 56,
+      "nextSceneIds": [
+        "streets-4-index-2"
+      ]
+    },
+    {
+      "id": "streets-4-index-2",
+      "title": "沙滩毯轮盘",
+      "page": 56,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 57,
+      "nextSceneIds": [
+        "streets-4-index-3"
+      ]
+    },
+    {
+      "id": "streets-4-index-3",
+      "title": "情况汇报",
+      "page": 57,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 58,
+      "nextSceneIds": [
+        "streets-4-index-4"
+      ]
+    },
+    {
+      "id": "streets-4-index-4",
+      "title": "再来一口",
+      "page": 57,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 58,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-4-index-5",
+      "title": "下潜！下潜！下潜！",
+      "page": 58,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 59,
+      "nextSceneIds": [
+        "streets-4-index-6"
+      ]
+    },
+    {
+      "id": "streets-4-index-6",
+      "title": "清除障碍",
+      "page": 59,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 60,
+      "nextSceneIds": [
+        "streets-4-index-7"
+      ]
+    },
+    {
+      "id": "streets-4-index-7",
+      "title": "涉水而行",
+      "page": 60,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 61,
+      "nextSceneIds": [
+        "streets-4-index-8"
+      ]
+    },
+    {
+      "id": "streets-4-index-8",
+      "title": "太平洋对峙",
+      "page": 61,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 62,
+      "nextSceneIds": [
+        "streets-4-index-13",
+        "streets-4-index-14",
+        "streets-4-index-9"
+      ]
+    },
+    {
+      "id": "streets-4-index-9",
+      "title": "水下之战",
+      "page": 62,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 63,
+      "nextSceneIds": [
+        "streets-4-index-10"
+      ]
+    },
+    {
+      "id": "streets-4-index-10",
+      "title": "第五幕",
+      "page": 63,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 64,
+      "nextSceneIds": [
+        "streets-4-index-11"
+      ]
+    },
+    {
+      "id": "streets-4-index-11",
+      "title": "绝命脱逃",
+      "page": 63,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 64,
+      "nextSceneIds": [
+        "streets-4-index-12",
+        "streets-4-index-15"
+      ]
+    },
+    {
+      "id": "streets-4-index-12",
+      "title": "接管",
+      "page": 64,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 65,
+      "nextSceneIds": [
+        "streets-4-index-18"
+      ]
+    },
+    {
+      "id": "streets-4-index-13",
+      "title": "谈判",
+      "page": 64,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 65,
+      "nextSceneIds": [
+        "streets-4-index-17",
+        "streets-4-index-16",
+        "streets-4-index-9"
+      ]
+    },
+    {
+      "id": "streets-4-index-14",
+      "title": "潜航撤离",
+      "page": 65,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 66,
+      "nextSceneIds": [
+        "streets-4-index-17"
+      ]
+    },
+    {
+      "id": "streets-4-index-15",
+      "title": "上浮",
+      "page": 66,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 67,
+      "nextSceneIds": [
+        "streets-4-index-16",
+        "streets-4-index-17"
+      ]
+    },
+    {
+      "id": "streets-4-index-16",
+      "title": "脱身",
+      "page": 66,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 67,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-4-index-17",
+      "title": "无处可去",
+      "page": 66,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 67,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-4-index-18",
+      "title": "末路",
+      "page": 66,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 67,
+      "nextSceneIds": []
+    }
+  ],
+  "streets-5": [
+    {
+      "id": "streets-5-index-1",
+      "title": "夜市",
+      "page": 77,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 78,
+      "nextSceneIds": [
+        "streets-5-index-2"
+      ]
+    },
+    {
+      "id": "streets-5-index-2",
+      "title": "小鸟遇险",
+      "page": 78,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 79,
+      "nextSceneIds": [
+        "streets-5-index-3"
+      ]
+    },
+    {
+      "id": "streets-5-index-3",
+      "title": "“八哥女士”的麻烦",
+      "page": 79,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 81,
+      "nextSceneIds": [
+        "streets-5-index-4"
+      ]
+    },
+    {
+      "id": "streets-5-index-4",
+      "title": "封锁",
+      "page": 81,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 83,
+      "nextSceneIds": [
+        "streets-5-index-6",
+        "streets-5-index-5"
+      ]
+    },
+    {
+      "id": "streets-5-index-5",
+      "title": "与菲克茜会面",
+      "page": 81,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 83,
+      "nextSceneIds": [
+        "streets-5-index-6"
+      ]
+    },
+    {
+      "id": "streets-5-index-6",
+      "title": "向玫瑰",
+      "page": 83,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 85,
+      "nextSceneIds": [
+        "streets-5-index-7"
+      ]
+    },
+    {
+      "id": "streets-5-index-7",
+      "title": "“漫游玫瑰”",
+      "page": 85,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 86,
+      "nextSceneIds": [
+        "streets-5-index-8"
+      ]
+    },
+    {
+      "id": "streets-5-index-8",
+      "title": "“闪电”物流",
+      "page": 86,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 88,
+      "nextSceneIds": [
+        "streets-5-index-9"
+      ]
+    },
+    {
+      "id": "streets-5-index-9",
+      "title": "尾声",
+      "page": 88,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 89,
+      "nextSceneIds": []
+    }
+  ],
+  "streets-6": [
+    {
+      "id": "streets-6-index-1",
+      "title": "取货",
+      "page": 95,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 96,
+      "nextSceneIds": [
+        "streets-6-index-2"
+      ]
+    },
+    {
+      "id": "streets-6-index-2",
+      "title": "无人机战",
+      "page": 95,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 96,
+      "nextSceneIds": [
+        "streets-6-index-3"
+      ]
+    },
+    {
+      "id": "streets-6-index-3",
+      "title": "狩猎派对",
+      "page": 96,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 98,
+      "nextSceneIds": [
+        "streets-6-index-4",
+        "streets-6-index-5"
+      ]
+    },
+    {
+      "id": "streets-6-index-4",
+      "title": "自由落体",
+      "page": 98,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 99,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-6-index-5",
+      "title": "漫漫攀登",
+      "page": 99,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 100,
+      "nextSceneIds": [
+        "streets-6-index-4",
+        "streets-6-index-6"
+      ]
+    },
+    {
+      "id": "streets-6-index-6",
+      "title": "生体傀儡突袭",
+      "page": 100,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 101,
+      "nextSceneIds": [
+        "streets-6-index-7"
+      ]
+    },
+    {
+      "id": "streets-6-index-7",
+      "title": "生体傀儡猎杀",
+      "page": 101,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 102,
+      "nextSceneIds": [
+        "streets-6-index-8"
+      ]
+    },
+    {
+      "id": "streets-6-index-8",
+      "title": "生体傀儡闪击",
+      "page": 101,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 102,
+      "nextSceneIds": [
+        "streets-6-index-9"
+      ]
+    },
+    {
+      "id": "streets-6-index-9",
+      "title": "又要取货",
+      "page": 102,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 103,
+      "nextSceneIds": [
+        "streets-6-index-10"
+      ]
+    },
+    {
+      "id": "streets-6-index-10",
+      "title": "寿司店大战",
+      "page": 103,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 104,
+      "nextSceneIds": [
+        "streets-6-index-11"
+      ]
+    },
+    {
+      "id": "streets-6-index-11",
+      "title": "新计划",
+      "page": 104,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 105,
+      "nextSceneIds": [
+        "streets-6-index-12"
+      ]
+    },
+    {
+      "id": "streets-6-index-12",
+      "title": "顶楼之上",
+      "page": 104,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 105,
+      "nextSceneIds": [
+        "streets-6-index-14",
+        "streets-6-index-13"
+      ]
+    },
+    {
+      "id": "streets-6-index-13",
+      "title": "简报",
+      "page": 105,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 106,
+      "nextSceneIds": [
+        "streets-6-index-14"
+      ]
+    },
+    {
+      "id": "streets-6-index-14",
+      "title": "“死神”",
+      "page": 106,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 107,
+      "nextSceneIds": [
+        "streets-6-index-16"
+      ]
+    },
+    {
+      "id": "streets-6-index-15",
+      "title": "“死神”未死",
+      "page": 107,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 108,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-6-index-16",
+      "title": "“孤望”不孤",
+      "page": 108,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 109,
+      "nextSceneIds": []
+    }
+  ],
+  "streets-7": [
+    {
+      "id": "streets-7-index-1",
+      "title": "崔斯的情报",
+      "page": 114,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 115,
+      "nextSceneIds": [
+        "streets-7-index-2",
+        "streets-7-index-3"
+      ]
+    },
+    {
+      "id": "streets-7-index-2",
+      "title": "穿越帐篷",
+      "page": 115,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 117,
+      "nextSceneIds": [
+        "streets-7-index-4"
+      ]
+    },
+    {
+      "id": "streets-7-index-3",
+      "title": "后巷混战",
+      "page": 117,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 118,
+      "nextSceneIds": [
+        "streets-7-index-4"
+      ]
+    },
+    {
+      "id": "streets-7-index-4",
+      "title": "“钢盔”的仓库",
+      "page": 117,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 118,
+      "nextSceneIds": [
+        "streets-7-index-5",
+        "streets-7-index-6"
+      ]
+    },
+    {
+      "id": "streets-7-index-5",
+      "title": "潜行到底",
+      "page": 118,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 119,
+      "nextSceneIds": [
+        "streets-7-index-7"
+      ]
+    },
+    {
+      "id": "streets-7-index-6",
+      "title": "打草惊蛇",
+      "page": 119,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 120,
+      "nextSceneIds": [
+        "streets-7-index-7"
+      ]
+    },
+    {
+      "id": "streets-7-index-7",
+      "title": "敌友难辨",
+      "page": 119,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 120,
+      "nextSceneIds": [
+        "streets-7-index-8",
+        "streets-7-index-9"
+      ]
+    },
+    {
+      "id": "streets-7-index-8",
+      "title": "友",
+      "page": 120,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 121,
+      "nextSceneIds": [
+        "streets-7-index-10"
+      ]
+    },
+    {
+      "id": "streets-7-index-9",
+      "title": "敌",
+      "page": 121,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 122,
+      "nextSceneIds": [
+        "streets-7-index-11"
+      ]
+    },
+    {
+      "id": "streets-7-index-10",
+      "title": "游民营地",
+      "page": 122,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 123,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-7-index-11",
+      "title": "“克剥”",
+      "page": 122,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 123,
+      "nextSceneIds": []
+    }
+  ],
+  "streets-8": [
+    {
+      "id": "streets-8-index-1",
+      "title": "勒索病毒",
+      "page": 133,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 134,
+      "nextSceneIds": [
+        "streets-8-index-2"
+      ]
+    },
+    {
+      "id": "streets-8-index-2",
+      "title": "执法者到来",
+      "page": 134,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 135,
+      "nextSceneIds": [
+        "streets-8-index-4",
+        "streets-8-index-3"
+      ]
+    },
+    {
+      "id": "streets-8-index-3",
+      "title": "束手就擒",
+      "page": 135,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 136,
+      "nextSceneIds": [
+        "streets-8-index-5",
+        "streets-8-index-4"
+      ]
+    },
+    {
+      "id": "streets-8-index-4",
+      "title": "回“家”",
+      "page": 136,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 141,
+      "nextSceneIds": [
+        "streets-8-index-7",
+        "streets-8-index-5"
+      ]
+    },
+    {
+      "id": "streets-8-index-5",
+      "title": "母亲的怒火",
+      "page": 141,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 142,
+      "nextSceneIds": [
+        "streets-8-index-6"
+      ]
+    },
+    {
+      "id": "streets-8-index-6",
+      "title": "莱拉的恳求",
+      "page": 141,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 142,
+      "nextSceneIds": [
+        "streets-8-index-4",
+        "streets-8-index-7"
+      ]
+    },
+    {
+      "id": "streets-8-index-7",
+      "title": "“骑士”的交易",
+      "page": 142,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 144,
+      "nextSceneIds": [
+        "streets-8-index-8",
+        "streets-8-index-9",
+        "streets-8-index-10"
+      ]
+    },
+    {
+      "id": "streets-8-index-8",
+      "title": "棘手的收场",
+      "page": 144,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 145,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-8-index-9",
+      "title": "新敌人",
+      "page": 145,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 146,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-8-index-10",
+      "title": "锒铛入狱",
+      "page": 145,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 146,
+      "nextSceneIds": []
+    }
+  ],
+  "streets-9": [
+    {
+      "id": "streets-9-index-1",
+      "title": "进入“太平洋”",
+      "page": 153,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 154,
+      "nextSceneIds": [
+        "streets-9-index-2"
+      ]
+    },
+    {
+      "id": "streets-9-index-2",
+      "title": "随餐附赠好运",
+      "page": 154,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 157,
+      "nextSceneIds": [
+        "streets-9-index-3"
+      ]
+    },
+    {
+      "id": "streets-9-index-3",
+      "title": "甜蜜同行",
+      "page": 157,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 159,
+      "nextSceneIds": [
+        "streets-9-index-4"
+      ]
+    },
+    {
+      "id": "streets-9-index-4",
+      "title": "利斧出鞘",
+      "page": 159,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 162,
+      "nextSceneIds": [
+        "streets-9-index-5",
+        "streets-9-index-6",
+        "streets-9-index-7"
+      ]
+    },
+    {
+      "id": "streets-9-index-5",
+      "title": "银色卡片",
+      "page": 162,
+      "optional": false,
+      "phase": "investigation",
+      "endPage": 164,
+      "nextSceneIds": [
+        "streets-9-index-6"
+      ]
+    },
+    {
+      "id": "streets-9-index-6",
+      "title": "转折与对决",
+      "page": 162,
+      "optional": false,
+      "phase": "escalation",
+      "endPage": 164,
+      "nextSceneIds": [
+        "streets-9-index-7"
+      ]
+    },
+    {
+      "id": "streets-9-index-7",
+      "title": "血红复仇",
+      "page": 164,
+      "optional": false,
+      "phase": "finale",
+      "endPage": 165,
+      "nextSceneIds": [
+        "streets-9-index-8",
+        "streets-9-index-9"
+      ]
+    },
+    {
+      "id": "streets-9-index-8",
+      "title": "大白于天下",
+      "page": 165,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 166,
+      "nextSceneIds": []
+    },
+    {
+      "id": "streets-9-index-9",
+      "title": "埋葬于过去",
+      "page": 165,
+      "optional": false,
+      "phase": "aftermath",
+      "endPage": 166,
+      "nextSceneIds": []
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "streets-1",
+    "title": "歌剧院之夜",
+    "start": 6,
+    "end": 19,
+    "intro": 7
+  },
+  {
+    "id": "streets-2",
+    "title": "欲望代理",
+    "start": 20,
+    "end": 37,
+    "intro": 22
+  },
+  {
+    "id": "streets-3",
+    "title": "一桶爆米花味“狗粮”",
+    "start": 38,
+    "end": 51,
+    "intro": 40
+  },
+  {
+    "id": "streets-4",
+    "title": "“鼓手”与“鲸鱼”",
+    "start": 52,
+    "end": 73,
+    "intro": 54
+  },
+  {
+    "id": "streets-5",
+    "title": "衣不蔽体",
+    "start": 74,
+    "end": 91,
+    "intro": 76
+  },
+  {
+    "id": "streets-6",
+    "title": "收割“死神”",
+    "start": 92,
+    "end": 111,
+    "intro": 94
+  },
+  {
+    "id": "streets-7",
+    "title": "保持警惕",
+    "start": 112,
+    "end": 127,
+    "intro": 113
+  },
+  {
+    "id": "streets-8",
+    "title": "浴血猩红",
+    "start": 128,
+    "end": 149,
+    "intro": 131
+  },
+  {
+    "id": "streets-9",
+    "title": "赤红之夜",
+    "start": 150,
+    "end": 171,
+    "intro": 152
+  }
+]

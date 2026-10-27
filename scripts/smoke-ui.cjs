@@ -1,0 +1,67 @@
+/** Real React component smoke tests under jsdom; native browser still recommended. */
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const ts=require('typescript');
+const { JSDOM }=require('jsdom');
+const jsdom=new JSDOM('<!doctype html><html><body></body></html>', {url:'http://localhost:5173/'});
+for (const name of ['window','document','navigator','HTMLElement','HTMLDialogElement','Node','Event','MutationObserver']) global[name]=jsdom.window[name];
+global.IS_REACT_ACT_ENVIRONMENT=true;
+global.requestAnimationFrame = callback => setTimeout(callback,0);
+HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
+HTMLDialogElement.prototype.close=function(){this.removeAttribute('open');};
+for(const ext of ['.ts','.tsx'])require.extensions[ext]=(mod,file)=>mod._compile(ts.transpileModule(fs.readFileSync(file,'utf8'),{fileName:file,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true,resolveJsonModule:true}}).outputText,file);
+const React = require('react');
+const {render,fireEvent,screen,waitFor,cleanup} =require('@testing-library/react');
+const storage=require('../src/lib/storage.ts');
+const state=require('../src/lib/state.ts');
+const runner=require('../src/lib/runner.ts');
+const ai=require('../src/lib/ai.ts');
+const { App }=require('../src/App.tsx');
+(async()=>{
+  // Broken campaign: no autosave overwrite, explicitly surface a recovery path.
+  window.localStorage.clear();
+  window.localStorage.setItem(storage.STORAGE_KEY, '{bad');
+  let ui=render(React.createElement(App));
+  assert(screen.getByText(/已暂停自动保存/));
+  assert.equal(storage.rawCampaignBackup(),'{bad');
+  fireEvent.click(screen.getByRole('button',{name:'丢弃损坏自动存档并新建'}));
+  assert.equal(storage.rawCampaignBackup(),'{bad');
+  fireEvent.click(screen.getByText('取消'));
+  assert.equal(storage.rawCampaignBackup(),'{bad');
+  cleanup();
+  // Reset requires confirmation and stores an independent snapshot.
+  window.localStorage.clear();
+  let c=state.createDefaultCampaign();
+  c=runner.startRunnerCampaign(c,c.settings);
+  window.localStorage.setItem(storage.STORAGE_KEY,JSON.stringify(c));
+  ui=render(React.createElement(App));
+  fireEvent.click(screen.getByRole('button',{name:'完整'}));
+  fireEvent.click(screen.getByRole('button',{name:'设置'}));
+  fireEvent.click(screen.getByRole('button',{name:'重置'}));
+  assert.equal(storage.loadCampaign().id,c.id);
+  assert(screen.getByText(/即将重置/));
+  fireEvent.click(screen.getByText('确认重置并备份'));
+  assert.notEqual(storage.loadCampaign().id,c.id);
+  assert.equal(storage.listSaveSlots()[0].campaign.id,c.id);
+  cleanup();
+  // AI result arrives after mode switch. Initial player turn must persist immediately.
+  window.localStorage.clear();
+  c=state.createDefaultCampaign();c.settings.runnerMode='ai';c.aiSettings.enabled=true;
+  c=runner.startRunnerCampaign(c,c.settings);
+  window.localStorage.setItem(storage.STORAGE_KEY,JSON.stringify(c));
+  let resolveAi;
+  ai.generateGmResponse=()=>new Promise(resolve=>resolveAi=resolve);
+  ui=render(React.createElement(App));
+  fireEvent.click(screen.getByRole('button',{name:'继续游戏'}));
+  fireEvent.change(screen.getByLabelText('你的行动'),{target:{value:'检查门锁'}});
+  fireEvent.click(screen.getByRole('button',{name:'提交行动'}));
+  await waitFor(()=>assert(storage.loadCampaign().runner.turns.some(t=>t.type==='player'&&t.body==='检查门锁')));
+  assert(storage.loadCampaign().runner.turns.some(t=>t.pending));
+  fireEvent.click(screen.getByRole('button',{name:'完整'}));
+  resolveAi({ok:true,text:'门锁发出低鸣。'});
+  await waitFor(()=>assert(storage.loadCampaign().runner.turns.some(t=>t.type==='gm'&&t.body==='门锁发出低鸣。')));
+  assert(!storage.loadCampaign().runner.turns.some(t=>t.pending));
+  assert.equal(storage.loadCampaign().runner.turns.filter(t=>t.type==='player'&&t.body==='检查门锁').length,1);
+  console.log('PASS: React UI recovery; reset confirmation + backup; AI action survives mode switching');
+  cleanup();
+})().catch(error=>{console.error(error);process.exitCode=1;});

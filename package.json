@@ -1,0 +1,35 @@
+{
+  "name": "cyberpunk-red-solo-runner",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "sources:index": "python scripts/index-local-pdfs.py",
+    "sources:equipment": "python scripts/import-equipment.py",
+    "dev": "vite --config vite.config.ts",
+    "build": "tsc -b && vite build --config vite.config.ts",
+    "preview": "vite preview --config vite.config.ts",
+    "test": "vitest run --config vite.config.ts",
+    "test:watch": "vitest --config vite.config.ts",
+    "smoke:fixes": "node scripts/smoke-fixes.cjs",
+    "smoke:ui": "node scripts/smoke-ui.cjs",
+    "smoke:body": "node scripts/smoke-simple-body.cjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "jsdom": "^25.0.1",
+    "vitest": "^2.1.5"
+  }
+}
