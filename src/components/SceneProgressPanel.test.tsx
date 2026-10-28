@@ -4,6 +4,16 @@ import { createDefaultCampaign } from '../lib/state';
 import { findModule, recordSceneResolution, startRunnerCampaign } from '../lib/runner';
 import { SceneProgressPanel } from './SceneProgressPanel';
 
+it('prefills only a real current-visit check and retains its failed outcome',()=>{
+  const base=createDefaultCampaign();const campaign=startRunnerCampaign(base,base.settings);
+  campaign.runner.turns.push({id:'roll',type:'check',speaker:'规则判定',body:'实际判定',createdAt:'',moduleId:campaign.runner.moduleId,sceneId:campaign.runner.sceneId,sceneInstanceId:campaign.currentScene.id,checkResult:{skillName:'觉察',total:10,dv:13,success:false}});
+  const onCampaign=vi.fn();render(<SceneProgressPanel campaign={campaign} onCampaign={onCampaign}/>);
+  expect(screen.getByLabelText('本场景已确认的线索或后果')).toHaveValue('觉察检定失败，总计 10 / DV 13。');
+  fireEvent.click(screen.getByRole('button',{name:'记录场景结果'}));
+  expect(onCampaign.mock.calls[0][0].runner.resolutions[0].outcome).toBe('failure');
+  expect(onCampaign.mock.calls[0][0].character).toEqual(campaign.character);
+});
+
 it('does not announce a saved result while the host response is pending',()=>{
   const base=createDefaultCampaign();
   const campaign=startRunnerCampaign(base,base.settings);

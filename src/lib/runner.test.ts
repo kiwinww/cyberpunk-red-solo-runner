@@ -60,7 +60,8 @@ describe("runner helpers", () => {
     const reply=createOfflineGmTurn(campaign,'联系售票员');
     expect(reply.body).toContain('联系售票员');
     expect(reply.body).toContain('找到失散的姐姐');
-    expect(reply.body).toContain('尚未确定行动的结果');
+    expect(reply.body).toContain('尚未裁定行动结果');
+    expect(reply.body).toContain('普通问答不需要掷骰');
     expect(reply.choices?.find(choice=>choice.kind==='talk')?.intent).toContain('媒体人');
   });
 });

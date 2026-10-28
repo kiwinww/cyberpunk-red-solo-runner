@@ -154,8 +154,8 @@ export function createOfflineGmTurn(campaign: Campaign, playerIntent?: string): 
     speaker: campaign.runner.mode === "ai" ? "离线主持兜底" : "离线主持",
     body: [lead, scene.phase!=='intro'?sceneBriefing(module,scene):'', personalContext, playerIntent ? characterApproach(campaign) : '',
       resolvingCheck ? `${lastCheck.checkResult ? lastCheck.checkResult.success ? '本次行动检定成功。' : '本次行动检定失败，可换一种办法或承担原文规定的后果。' : '判定已记录。'}在「场景进展」记录本次证实的事实或阻碍，再选择符合条件的分支；单次成功不代表整个场景已完成。`
-      : playerIntent ? scene.phase==='intro' && /询问|核实|条件|合同|委托|费用|安排/.test(playerIntent) ? `${profile.briefing}\n你可以接受、拒绝或继续追问；未替你作出决定或登记收支。` : `你尚未确定行动的结果。当前关注「${scene.title}」；先说明接触对象与风险，完成对应判定后记录线索或阻碍。`
-      : scene.phase==='intro' ? module.background.missionPremise : '查阅本场景依据，完成当前行动后在「场景进展」记录结果，选择符合实际条件的后续场景。',
+      : playerIntent ? scene.phase==='intro' && /询问|核实|条件|合同|委托|费用|安排/.test(playerIntent) ? `${profile.briefing}\n你可以接受、拒绝或继续追问；未替你作出决定或登记收支。` : `已记录你的意图，尚未裁定行动结果。当前关注「${scene.title}」。普通问答不需要掷骰；风险行动先确认具体目标、适用技能和失败风险，再打开判定台。离线索引不会自动认定行动成功或发放线索。`
+      : scene.phase==='intro' ? module.background.missionPremise : '先查阅本场景依据。普通互动无需掷骰；风险行动先确认判定条件，记录真实结果后再选择符合条件的后续场景。',
       sourceLine, campaign.settings.difficulty === 'easy' ? '先确认风险与退路；不因难度设置改变正式数值。' : '', campaign.settings.pace === 'slow' ? hostingPreferences(campaign.settings)[1] : ''].filter(Boolean).join("\n\n"),
     choices: resolvingCheck && lastCheck.checkResult?.success===false ? [
       {id:crypto.randomUUID(),label:'换一种调查办法',detail:'保留失败结果，寻找不同证据或接近路线，不重掷同一次行动。',intent:'保留刚才的失败结果，寻找其他可行的调查办法；不重复原检定。',kind:'investigate'},

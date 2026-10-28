@@ -1458,7 +1458,7 @@ code {
 @media(max-width:760px){.cyber-install-layout{grid-template-columns:1fr}.shop-controls{grid-template-columns:1fr 1fr}.shop-catalog{grid-template-columns:1fr}}
 @media(max-width:470px){.shop-controls{grid-template-columns:1fr}.cyber-body-graphic{max-width:330px}.cyber-body-upper{min-height:122px}.cyber-body-legs{min-height:110px}}
 .play-inventory-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
-.play-inventory-summary span{display:grid;gap:6px;border:1px solid var(--line);background:var(--panel);padding:12px;}
+.play-inventory-summary >span{display:grid;gap:6px;border:1px solid var(--line);background:var(--panel);padding:12px;}
 .play-inventory-summary small,.play-inventory-list small{font-size:11px;color:var(--muted);}
 .play-inventory-summary strong{font-size:17px;color:#f6d7a1;}
 .play-inventory-list{display:grid;gap:6px;}
@@ -1563,7 +1563,10 @@ h1, h2, h3, h4 { line-height:1.4; overflow-wrap:anywhere; }
 
 /* Three independent play columns keep tools and choices away from the composer. */
 .game-shell .simple-workspace:has(.game-session) { max-width:1920px; padding-inline:16px; }
-.game-session,.game-session.has-side-panel { max-width:none; grid-template-columns:120px minmax(0,1fr) 260px; grid-template-rows:auto minmax(140px,1fr) auto; gap:0 18px; }
+.workspace-grid:has(.game-session) { grid-template-columns:minmax(0,1fr); }
+.game-session,.game-session.has-side-panel { --detail-width:360px; --tools-width:120px; --actions-width:var(--detail-width); max-width:none; grid-template-columns:var(--tools-width) minmax(0,1fr) var(--actions-width); grid-template-rows:auto minmax(140px,1fr) auto; gap:0 18px; }
+.game-session.tools-collapsed { --tools-width:48px; }
+.game-session.actions-collapsed { --actions-width:48px; }
 .game-session > .game-status,.game-session.has-side-panel > .game-status { grid-column:2; grid-row:1; }
 .game-session > .game-story,.game-session.has-side-panel > .game-story { grid-column:2; grid-row:2; min-height:0; }
 .game-session > .game-action-dock,.game-session.has-side-panel > .game-action-dock { grid-column:2; grid-row:3; max-height:36dvh; overflow:auto; }
@@ -1572,9 +1575,23 @@ h1, h2, h3, h4 { line-height:1.4; overflow-wrap:anywhere; }
 .game-session .game-toolbar .icon-button span { display:inline; }
 .game-session .session-save-actions { margin: auto 0 0; padding-top:16px; flex-direction:column; }
 .game-session .session-more-tools > div { position:static; min-width:0; padding:0; border:0; }
+.game-session .session-more-tools > summary[hidden] { display:none; }
+.game-session .session-more-tools > div { gap:6px; background:transparent; box-shadow:none; }
 .game-action-rail { grid-column:3; grid-row:1/4; min-width:0; min-height:0; overflow:auto; padding:20px 0 16px 16px; border-left:1px solid var(--line); }
-.game-action-rail .action-prompt { flex-wrap:wrap; gap:8px; justify-content:flex-start; }
-.game-action-rail .action-prompt > span { flex-basis:100%; color:var(--text); font-size:var(--type-label); }
+.game-action-rail .action-prompt { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+.game-action-rail .action-prompt > span { grid-column:1/-1; color:var(--text); font-size:var(--type-label); }
+.game-action-rail .action-prompt > .action-count,.game-action-rail .action-prompt > .rail-toggle { grid-column:1/-1; }
+.game-action-rail .action-prompt .role-action,.game-action-rail .action-prompt .icon-button { display:flex; justify-content:center; align-items:center; width:100%; min-width:0; min-height:44px; height:auto; padding:8px; margin:0; font-size:14px; line-height:1.5; white-space:normal; overflow-wrap:anywhere; border:1px solid var(--line); }
+.rail-toggle { display:flex; align-items:center; justify-content:center; gap:6px; min-height:44px; min-width:0; border:1px solid var(--line); border-radius:4px; background:var(--panel); color:var(--text); cursor:pointer; }
+.rail-toggle svg { flex-shrink:0; }
+.game-session.tools-collapsed .game-toolbar { padding-inline:4px; }
+.game-session.tools-collapsed .game-toolbar .icon-button { justify-content:center; padding:8px 2px; }
+.game-session.tools-collapsed .game-toolbar .icon-button span,.game-session.tools-collapsed .game-toolbar .rail-toggle span,.game-session.tools-collapsed .session-more-tools > summary span { display:none; }
+.game-session.tools-collapsed .session-more-tools > summary { padding:8px 2px; justify-content:center; }
+.game-session.actions-collapsed .game-action-rail { padding:20px 4px; }
+.game-session.actions-collapsed .game-action-rail .action-prompt > :not(.rail-toggle) { display:none; }
+.game-session.actions-collapsed .game-action-rail .rail-toggle { margin:0; padding:6px; width:100%; }
+.game-session.actions-collapsed .game-action-rail .rail-toggle span { display:none; }
 .game-action-rail .game-options { grid-template-columns:minmax(0,1fr); max-height:none; overflow:visible; }
 .game-action-rail .choice-copy .action-kind { color:var(--blue); font-size:12px; display:block; margin-bottom:4px; }
 .game-session .game-side-panel { grid-column:2/4; grid-row:4; max-height:36dvh; border:1px solid var(--line); }
@@ -1584,8 +1601,8 @@ h1, h2, h3, h4 { line-height:1.4; overflow-wrap:anywhere; }
 .game-session.has-side-panel { grid-template-rows:auto minmax(140px,1fr) auto minmax(100px,30dvh); }
 .game-shell .topbar-actions > .autosave-status { display:inline; color:var(--green); font-size:12px; }
 .check-formula { grid-column:1/-1; margin:0; padding:10px; background:var(--panel); font-size:14px; overflow-wrap:anywhere; }
-@media(min-width:1440px) {
-  .game-session.has-side-panel { grid-template-columns:120px 340px minmax(0,1fr) 260px; grid-template-rows:auto minmax(140px,1fr) auto; }
+@media(min-width:1280px) {
+  .game-session.has-side-panel { grid-template-columns:var(--tools-width) var(--detail-width,360px) minmax(0,1fr) var(--actions-width); grid-template-rows:auto minmax(140px,1fr) auto; }
   .game-session.has-side-panel > .game-status,.game-session.has-side-panel > .game-story,.game-session.has-side-panel > .game-action-dock { grid-column:3; }
   .game-session.has-side-panel > .game-action-rail { grid-column:4; }
   .game-session.has-side-panel > .game-side-panel { grid-column:2; grid-row:1/4; max-height:none; border-top:0; }
@@ -1602,4 +1619,82 @@ h1, h2, h3, h4 { line-height:1.4; overflow-wrap:anywhere; }
   .game-session .game-side-panel { grid-column:1; grid-row:6; max-height:60dvh; }
   .game-session .game-action-rail .game-options { grid-template-columns:minmax(0,1fr); max-height:260px; overflow:auto; }
   .game-session .game-options .choice-copy small,.game-session.has-side-panel .game-action-rail .game-options .choice-copy small { display:block; }
+  .game-session.actions-collapsed .game-action-rail { padding:10px 0; }
+  .game-session.actions-collapsed .game-action-rail .rail-toggle { width:auto; }
+  .game-session.actions-collapsed .game-action-rail .rail-toggle span { display:inline; }
 }
+
+.play-character-sheet { min-width:0; font-size:14px; line-height:1.65; }
+.play-character-sheet h3 { font-size:20px; overflow-wrap:anywhere; }
+.play-character-sheet h4 { font-size:16px; margin:18px 0 10px; }
+.play-character-sheet .play-inventory-summary > div { min-height:88px; min-width:0; padding:12px; background:var(--panel); border:1px solid var(--line); }
+.play-character-sheet .play-inventory-summary > div > .help-tip { display:grid; gap:6px; width:100%; }
+.play-character-sheet .play-stat-grid { grid-template-columns:repeat(auto-fit,minmax(64px,1fr)); }
+.play-character-sheet .play-stat-grid > .help-tip { display:grid; align-content:center; justify-items:center; min-height:76px; min-width:0; padding:8px; background:var(--panel); border:1px solid var(--line); }
+.play-character-sheet .play-stat-grid small,.play-character-sheet .play-inventory-summary small { font-size:13px; }
+.play-character-sheet .play-skill-list { grid-template-columns:1fr;gap:0; }
+.play-skills > input { width:100%;min-width:0;box-sizing:border-box;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--text); }
+.play-skill-row { display:grid;grid-template-columns:minmax(0,1fr) 40px 40px;gap:8px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px; }
+.play-skill-row > div { min-width:0;overflow-wrap:anywhere; }
+.play-skill-row small { display:block;color:var(--muted);font-size:12px;line-height:1.6; }
+.play-skill-row > span { text-align:center; }
+.play-skill-row strong { font-size:16px; }
+.check-context { padding:12px 0;border-bottom:1px solid var(--line);margin-bottom:16px;line-height:1.7;overflow-wrap:anywhere; }
+.check-context p { margin:6px 0; }
+.check-context small { color:var(--muted); }
+.interaction-status { display:flex;align-items:baseline;gap:8px;padding:8px 0;line-height:1.6;font-size:13px; }
+.interaction-status strong { flex-shrink:0;color:var(--text); }
+.interaction-status span { color:var(--muted);overflow-wrap:anywhere; }
+@media(max-width:600px) { .interaction-status { align-items:flex-start;flex-direction:column;gap:2px; } }
+.play-equipment-list { display:grid; gap:8px; padding:0; list-style:none; }
+.play-equipment-list li { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 12px; min-width:0; min-height:44px; padding:10px; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
+.play-equipment-list small { color:var(--muted); font-size:13px; }
+.game-session .game-options > button { min-height:100px; height:auto; }
+.game-action-rail .choice-copy small { -webkit-line-clamp:unset; overflow:visible; }
+.game-session .game-toolbar .icon-button { min-height:44px; }
+.game-action-rail .game-options { grid-auto-rows:1fr; }
+.game-action-rail .game-options { position:relative; }
+.game-action-rail .game-options > .folded-choice { position:absolute; visibility:hidden; pointer-events:none; left:0; top:0; width:100%; }
+.game-action-rail .game-options > .opening-action { min-height:76px; justify-content:flex-start; gap:12px; text-align:left; }
+.game-action-rail .opening-action .choice-copy { flex:1; }
+.game-action-rail .opening-action strong { font-size:16px; line-height:1.5; }
+.play-character-sheet .play-inventory-summary strong { overflow-wrap:anywhere; }
+.play-character-sheet .cyber-map-slot { min-height:48px; font-size:12px; line-height:1.5; }
+
+.game-action-rail[hidden] { display:none; }
+.game-session.has-wide-panel { --detail-width:360px; }
+.game-side-panel .shop-controls { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.game-side-panel .shop-controls > label:first-child { grid-column:1/-1; }
+.game-side-panel .shop-controls .field { min-width:0; }
+.game-side-panel .shop-controls input,.game-side-panel .shop-controls select { width:100%; min-width:0; }
+.game-side-panel .shop-controls select { font-size:14px; padding-inline:8px; }
+.game-side-panel .shop-catalog { grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); max-height:none; overflow:visible; padding:0; gap:16px; }
+.game-side-panel .shop-product-title { flex-wrap:wrap; }
+.game-side-panel .shop-product p { font-size:14px; line-height:1.7; }
+.game-side-panel .shop-product-buy { flex-wrap:wrap; }
+.game-side-panel .shop-product-buy button { min-height:44px; font-size:14px; }
+.game-side-panel .novel-toolbar { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:12px; }
+.game-side-panel .novel-toolbar h3 { margin:0; font-size:18px; overflow-wrap:anywhere; }
+.game-side-panel .novel-toolbar button { min-height:44px; }
+.manuscript-preview { white-space:pre-wrap; overflow-wrap:anywhere; font-size:15px; line-height:1.9; margin:12px 0; }
+.game-side-panel .novel-entry { padding:16px 0; }
+.game-side-panel .novel-entry > summary { font-size:14px; color:var(--text); }
+.game-side-panel .novel-entry textarea { padding:12px; font:inherit; line-height:1.8; }
+.dice-continuation { display:grid; gap:10px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+.dice-continuation button { min-height:44px; border:1px solid var(--line); border-radius:4px; background:var(--panel); color:var(--text); cursor:pointer; }
+.has-dice-panel .drawer-body > .panel > .panel-header { display:none; }
+@media(min-width:901px) {
+  .game-session.has-side-panel.has-dice-panel { grid-template-columns:var(--tools-width) minmax(0,1fr) 360px; grid-template-rows:auto minmax(140px,1fr) auto; }
+  .game-session.has-side-panel.has-dice-panel > .game-status,.game-session.has-side-panel.has-dice-panel > .game-story,.game-session.has-side-panel.has-dice-panel > .game-action-dock { grid-column:2; }
+  .game-session.has-side-panel.has-dice-panel > .game-side-panel { grid-column:3; grid-row:1/4; max-height:none; }
+}
+@media(max-width:900px) {
+  .game-session.has-dice-panel .game-side-panel { grid-row:5; }
+}
+.game-side-panel .field input,.game-side-panel .field select,.game-side-panel .field textarea { width:100%; min-width:0; box-sizing:border-box; }
+.game-side-panel .form-grid > button { width:100%; min-height:44px; margin:0; }
+.game-side-panel .form-grid > button:not(.icon-button) { padding:10px 12px; border:1px solid var(--line); border-radius:4px; background:var(--panel); color:var(--text); font:inherit; cursor:pointer; }
+.game-side-panel .form-grid > button:disabled { opacity:.5; cursor:not-allowed; }
+.dv-origin { display:flex; align-items:center; gap:6px; margin:0; font-size:13px; }
+.dv-origin.suggested { color:var(--yellow); }
+.dv-origin.source { color:var(--green); }

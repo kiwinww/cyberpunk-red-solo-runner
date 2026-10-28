@@ -37,9 +37,21 @@ describe("game experience", () => {
     expect(screen.getByLabelText('存档状态')).toHaveTextContent('已自动保存');
     fireEvent.click(screen.getByRole('button',{name:'收起行动栏'}));
     expect(screen.queryByRole('group',{name:'可选行动'})).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('输入你的行动…')).toBeVisible();
+    expect(screen.getByLabelText('你的行动')).toBeVisible();
     fireEvent.click(screen.getByRole('button',{name:'展开行动栏'}));
     expect(screen.getByRole('group',{name:'可选行动'})).toBeVisible();
+  });
+  it('locks the in-game character card in both the tool panel and full workspace',()=>{
+    renderPreparedApp();startGame();
+    fireEvent.click(screen.getByRole('button',{name:'角色与装备'}));
+    const sheet=screen.getByLabelText('游戏角色卡');
+    expect(within(sheet).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(within(sheet).queryByRole('spinbutton')).not.toBeInTheDocument();
+    expect(screen.queryByText('编辑角色')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'完整'}));
+    fireEvent.click(screen.getByRole('button',{name:'角色'}));
+    expect(screen.getByLabelText('游戏角色卡')).toBeVisible();
+    expect(screen.queryByRole('button',{name:'保存角色'})).not.toBeInTheDocument();
   });
   it('shows nine unique module choices while preserving a legacy preparation selection',()=>{
     renderPreparedApp();
@@ -47,6 +59,31 @@ describe("game experience", () => {
     expect(within(select).getAllByRole('option')).toHaveLength(9);
     expect(select).toHaveValue('streets-1');
     expect(storage.loadCampaign().settings.selectedModuleId).toBe('opera-night-preview');
+  });
+  it('automatically collapses both rails below their breakpoints and permits reopening',()=>{
+    const widen:Array<()=>void>=[];
+    vi.stubGlobal('matchMedia',vi.fn((query:string)=>{
+      const media={matches:true,media:query,addEventListener:(_event:string,listener:()=>void)=>{widen.push(()=>{media.matches=false;listener();});},removeEventListener:vi.fn()};
+      return media;
+    }));
+    try {
+      renderPreparedApp();startGame();
+      expect(screen.getByRole('button',{name:'展开工具栏'})).toBeVisible();
+      expect(screen.getByRole('button',{name:'展开行动栏'})).toBeVisible();
+      expect(screen.getByLabelText('你的行动')).toBeEnabled();
+      fireEvent.click(screen.getByRole('button',{name:'展开行动栏'}));
+      expect(screen.getByRole('group',{name:'可选行动'})).toBeVisible();
+      act(()=>widen.forEach(update=>update()));
+      expect(screen.getByRole('button',{name:'收起工具栏'})).toBeVisible();
+      expect(screen.getByRole('button',{name:'收起行动栏'})).toBeVisible();
+    } finally {vi.unstubAllGlobals();}
+  });
+  it('renders the Executive teamwork action as a role ability, not a character editing field',()=>{
+    const campaign=storage.loadCampaign();campaign.character.role='主管';
+    storage.saveCampaign(campaign);
+    renderPreparedApp();startGame();
+    expect(screen.getByRole('button',{name:'团队协作 · 4'})).toHaveClass('role-action');
+    expect(screen.getByRole('button',{name:'掷骰判定'})).toBeVisible();
   });
   it('does not claim autosave succeeded when local storage rejects the write',()=>{
     vi.spyOn(storage,'saveCampaign').mockImplementation(()=>{throw new Error('quota');});
@@ -72,8 +109,9 @@ describe("game experience", () => {
     const base=storage.loadCampaign();const c=startRunnerCampaign(base,base.settings);
     c.journal=[{id:'current',type:'ai',title:'recap',body:'当前剧本摘要',createdAt:'',moduleId:c.runner.moduleId},{id:'other',type:'ai',title:'recap',body:'其他剧本不可混入',createdAt:'',moduleId:'another-module'},{id:'old',type:'ai',title:'recap',body:'旧版摘要仍保留',createdAt:''}];
     storage.saveCampaign(c);render(<App/>);fireEvent.click(screen.getByRole('button',{name:'继续游戏'}));
-    expect(screen.getByText('背景与记忆')).toBeVisible();
+    expect(screen.getByRole('button',{name:'人生路径'})).toHaveTextContent('记忆');
     fireEvent.click(screen.getByRole('button',{name:'人生路径'}));
+    fireEvent.click(screen.getByText('待确认摘要',{selector:'summary'}));
     expect(screen.getByText('当前剧本摘要')).toBeVisible();
     expect(screen.queryByText('其他剧本不可混入')).not.toBeInTheDocument();
     expect(screen.getByText('旧版摘要仍保留')).not.toBeVisible();
@@ -83,7 +121,7 @@ describe("game experience", () => {
   it('collapses extra actions while preserving a scene route and supports editable dice presets',()=>{
     const base=storage.loadCampaign();const c=startRunnerCampaign(base,base.settings);
     storage.saveCampaign(c);render(<App/>);fireEvent.click(screen.getByRole('button',{name:'继续游戏'}));
-    expect(screen.getByRole('group',{name:'可选行动'}).querySelectorAll('button')).toHaveLength(3);
+    expect(within(screen.getByRole('group',{name:'可选行动'})).getAllByRole('button')).toHaveLength(3);
     expect(screen.getByRole('button',{name:/推进到/})).toBeVisible();
     fireEvent.click(screen.getByRole('button',{name:/更多行动/}));
     expect(screen.getByRole('group',{name:'可选行动'}).querySelectorAll('button').length).toBeGreaterThan(3);
@@ -162,9 +200,43 @@ describe("game experience", () => {
     expect(saved.character.skills.find(s=>s.skillId==='perception')!.level).toBe(sheetLevel);
     expect(saved.runner.turns.slice(-1)[0].body).toContain('本次临时技能等级');
     expect(saved.runner.turns.slice(-1)[0].checkResult?.dv).toBe(15);
+    expect(screen.getByLabelText('互动阶段')).toHaveTextContent('等待叙述后果');
+    expect(screen.getByLabelText('你的行动')).toBeDisabled();
+    expect(screen.getByRole('button',{name:'提交行动'})).toBeDisabled();
+    fireEvent.click(screen.getByRole('button',{name:'关闭'}));
     fireEvent.click(screen.getByRole('button',{name:'掷骰判定'}));
-    expect(screen.getByLabelText('DV')).toHaveValue(null);
+    expect(screen.getByLabelText('DV')).toHaveValue(13);
+    expect(screen.getByLabelText('DV依据')).toHaveTextContent('主持建议');
     expect(screen.queryByLabelText('主持判定建议')).not.toBeInTheDocument();
+  });
+  it('distinguishes conversation from a pending check and records abandonment without a success',()=>{
+    const base=storage.loadCampaign();const c=startRunnerCampaign(base,base.settings);
+    c.runner.turns.push({id:'required-boundary',type:'gm',speaker:'主持',body:'潜入有人看守的入口存在被发现的风险。',createdAt:'',checkRequest:{reason:'避开守卫进入后台',skillId:'stealth',dv:15}});
+    storage.saveCampaign(c);render(<App/>);fireEvent.click(screen.getByRole('button',{name:'继续游戏'}));
+    expect(screen.getByLabelText('互动阶段')).toHaveTextContent('等待判定');
+    expect(screen.getByLabelText('你的行动')).toBeDisabled();
+    expect(screen.getByRole('button',{name:'提交行动'})).toBeDisabled();
+    fireEvent.click(screen.getByRole('button',{name:'放弃本次尝试'}));
+    expect(screen.getByLabelText('互动阶段')).toHaveTextContent('自由互动');
+    expect(screen.getByLabelText('你的行动')).toBeEnabled();
+    const saved=storage.loadCampaign();
+    expect(saved.runner.turns[saved.runner.turns.length-1].body).toContain('未掷骰，不计为成功');
+    expect(saved.runner.turns.some(turn=>turn.type==='check')).toBe(false);
+    expect(saved.character).toEqual(c.character);
+  });
+  it('rolls and continues with exactly one saved result and no duplicate player action',()=>{
+    const base=storage.loadCampaign();const c=startRunnerCampaign(base,base.settings);
+    c.runner.turns.push({id:'required',type:'gm',speaker:'主持',body:'观察入口是否有危险。',createdAt:'',checkRequest:{reason:'观察入口是否有危险',skillId:'perception',dv:13}});
+    const players=c.runner.turns.filter(turn=>turn.type==='player').length;
+    storage.saveCampaign(c);render(<App/>);fireEvent.click(screen.getByRole('button',{name:'继续游戏'}));
+    fireEvent.click(screen.getByRole('button',{name:'进行这次判定'}));
+    expect(screen.getByText('本次行动')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'掷骰并继续'}));
+    const saved=storage.loadCampaign();
+    expect(saved.runner.turns.filter(turn=>turn.type==='check')).toHaveLength(1);
+    expect(saved.runner.turns.filter(turn=>turn.type==='player')).toHaveLength(players);
+    expect(saved.runner.turns[saved.runner.turns.length-1]?.type).toBe('gm');
+    expect(screen.queryByRole('heading',{name:'掷骰判定'})).not.toBeInTheDocument();
   });
   it('verifies legacy prose advice without overwriting edits made while source lookup is pending',async()=>{
     const base=storage.loadCampaign();const c=startRunnerCampaign(base,{...base.settings,selectedModuleId:'streets-3',starterSceneId:'streets-3-index-1'});
@@ -206,7 +278,7 @@ describe("game experience", () => {
     fireEvent.click(screen.getByRole('button',{name:'场景进展'}));
     fireEvent.change(screen.getByLabelText('本场景已确认的线索或后果'),{target:{value:'已带好邀请卡，并决定观察仓库外的接近路线。'}});
     fireEvent.click(screen.getByRole('button',{name:'记录场景结果'}));
-    fireEvent.click(screen.getByRole('checkbox',{name:'我确认所选分支符合当前线索与进入条件'}));
+    fireEvent.click(screen.getByRole('checkbox',{name:'满足进入条件'}));
     fireEvent.click(screen.getByRole('button',{name:'对手小队'}));
     const saved=storage.loadCampaign();
     expect(saved.runner.sceneId).toBe('streets-3-index-1');
@@ -364,9 +436,11 @@ describe("game experience", () => {
     renderPreparedApp();
     startGame();
     fireEvent.click(screen.getByRole("button", { name: "掷骰判定" }));
+    expect(screen.getByRole('complementary',{name:'掷骰判定'}).closest('.game-session')).toHaveClass('has-dice-panel');
+    expect(screen.getByLabelText('行动栏')).toHaveAttribute('hidden');
     fireEvent.change(screen.getByLabelText('DV'),{target:{value:'13'}});
     fireEvent.click(screen.getByRole("button", { name: "掷骰" }));
-    expect(screen.getByText("判定已记录")).toBeVisible();
+    expect(within(screen.getByRole('complementary',{name:'掷骰判定'})).getByText('判定已记录')).toBeVisible();
     expect(screen.getByRole("button", { name: /交给主持继续/ })).toBeVisible();
   });
   it('waits for the requested check, prefills the skill/DV and includes wound and saved skill modifiers',async()=>{
@@ -393,13 +467,26 @@ describe("game experience", () => {
     expect(mock.mock.calls[0][0].runner.turns.some(turn=>turn.type==='check')).toBe(true);
     expect(storage.loadCampaign().runner.turns.filter(turn=>turn.type==='player')).toHaveLength(0);
   });
-  it('requires an explicit DV for a manual check instead of silently using 13',async()=>{
+  it('labels an ordinary free check as a recommendation and supports changing its difficulty',async()=>{
     vi.spyOn(localSources,'retrieveLocalSources').mockResolvedValue([]);
     renderPreparedApp();startGame();
     fireEvent.click(screen.getByRole('button',{name:'掷骰判定'}));
-    expect(screen.getByRole('button',{name:'掷骰'})).toBeDisabled();
+    expect(screen.getByRole('button',{name:'掷骰'})).toBeEnabled();
+    expect(screen.getByLabelText('DV')).toHaveValue(13);
+    expect(screen.getByLabelText('DV依据')).toHaveTextContent('主持建议');
+    fireEvent.change(screen.getByLabelText('建议难度'),{target:{value:'professional'}});
+    expect(screen.getByLabelText('DV')).toHaveValue(17);
+    fireEvent.click(screen.getByRole('button',{name:'掷骰'}));
+    expect(storage.loadCampaign().runner.turns.slice(-1)[0].body).toContain('主持建议（通用难度，非模组固定值）');
+  });
+  it('never fills generic DV for weapon attacks when weapon range or an opposed roll is missing',async()=>{
+    vi.spyOn(localSources,'retrieveLocalSources').mockResolvedValue([]);
+    renderPreparedApp();startGame();
+    fireEvent.click(screen.getByRole('button',{name:'掷骰判定'}));
+    fireEvent.change(screen.getByLabelText('技能',{exact:true}),{target:{value:'handgun'}});
     expect(screen.getByLabelText('DV')).toHaveValue(null);
-    await screen.findByText('自由判定尚未指定行动依据；可选择技能后手动填写，或点击匹配本场景 DV。');
+    expect(screen.getByRole('button',{name:'掷骰'})).toBeDisabled();
+    await screen.findByText('此类判定需距离、对抗值或专门规则，不能套用通用建议。');
   });
   it('does not count opening narration as a player action or offer the opening button again',async()=>{
     const campaign=storage.loadCampaign();campaign.settings.runnerMode='ai';campaign.aiSettings.enabled=true;
@@ -407,6 +494,8 @@ describe("game experience", () => {
     vi.spyOn(ai,'generateGmResponse').mockResolvedValue({ok:true,text:'雨中的门厅里有人等着你。',choices:[{id:'talk',label:'询问来意',intent:'询问来意',kind:'talk'}]});
     render(<App />);
     fireEvent.click(screen.getByRole('button',{name:'继续游戏'}));
+    expect(screen.getByRole('button',{name:'让主持人开场'})).toHaveTextContent('开始故事');
+    expect(screen.queryByRole('button',{name:/更多行动/})).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button',{name:'让主持人开场'}));
     await screen.findByText('雨中的门厅里有人等着你。');
     expect(storage.loadCampaign().runner.turns.filter(turn=>turn.type==='player')).toHaveLength(0);
@@ -477,8 +566,11 @@ describe("game experience", () => {
     renderPreparedApp();startGame();
     expect(screen.queryByRole('button',{name:'冒险记录'})).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button',{name:'当前委托'}));
-    fireEvent.change(screen.getByLabelText('已确认线索与当前阻碍'),{target:{value:'线人提到后台入口，门禁尚未解决。'}});
+    expect(screen.queryByLabelText('已确认线索与当前阻碍')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('当前目标状态'),{target:{value:'resolved'}});
+    fireEvent.click(screen.getByRole('button',{name:'人生路径'}));
+    fireEvent.click(screen.getByText('长期笔记',{selector:'summary'}));
+    fireEvent.change(screen.getByLabelText('长期笔记'),{target:{value:'线人提到后台入口，门禁尚未解决。'}});
     fireEvent.click(screen.getByRole('button',{name:'关闭'}));
     fireEvent.click(screen.getByRole('button',{name:'本地保存'}));
     fireEvent.click(screen.getByRole('button',{name:'本地保存'}));
@@ -487,8 +579,10 @@ describe("game experience", () => {
     expect(storage.listSaveSlots()).toHaveLength(1);
     fireEvent.click(screen.getByRole('button',{name:'读取本地存档'}));
     fireEvent.click(screen.getByRole('button',{name:'当前委托'}));
-    expect(screen.getByLabelText('已确认线索与当前阻碍')).toHaveValue('线人提到后台入口，门禁尚未解决。');
     expect(screen.getByLabelText('当前目标状态')).toHaveValue('resolved');
+    fireEvent.click(screen.getByRole('button',{name:'人生路径'}));
+    fireEvent.click(screen.getByText('长期笔记',{selector:'summary'}));
+    expect(screen.getByLabelText('长期笔记')).toHaveValue('线人提到后台入口，门禁尚未解决。');
   });
 
   it("preserves the full tools and the mode preference", () => {

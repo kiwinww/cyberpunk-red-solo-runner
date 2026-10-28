@@ -2,19 +2,24 @@ import { AiSettingsFields } from './components/AiSettingsFields';
 import { SceneProgressPanel } from './components/SceneProgressPanel';
 import { SkillAnnotatedText } from './components/SkillAnnotatedText';
 import { CharacterProfilesPanel } from './components/CharacterProfilesPanel';
+import { PlayCharacterSheet } from './components/PlayCharacterSheet';
 import { gmNarration } from './lib/gmReply';
 import { updateTrackedHp } from './lib/combatTracking';
 import { STAT_NAMES as STAT_LABELS, extractCheckSuggestions, inferSourcedCheck, type CheckSuggestion } from './lib/skillAdvice';
+import { GENERAL_DV_LEVELS, recommendSkillDv, type GeneralDifficulty } from './lib/dvRecommendation';
 import { changeCharacterGender, characterIdentitySummary, GENDER_LABELS } from './lib/characterIdentity';
 import { retrieveLocalSources } from './lib/localSources';
 import { equipmentStats } from './lib/equipmentStats';
 import { saveCurrentCheckpoint } from './lib/storage';
 import { HelpTip } from './components/HelpTip';
-import { equipmentHelp } from './lib/equipmentHelp';
 import { equipmentBonuses } from './lib/equipmentBonuses';
 import {
   Archive,
   MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
   BookOpen,
   Bot,
   BrainCircuit,
@@ -57,8 +62,7 @@ import { getContextualWorldHooks } from "./data/lore";
 import { woundPenalty } from './lib/checkContext';
 import { registerWorldAction, resolveWorldAction } from "./lib/worldEvents";
 import { buildManuscript } from "./lib/manuscript";
-import { CharacterShop, CyberwarePanel, CyberwareOverview } from "./components/CharacterEquipment";
-import { CREATION_CATALOG, getShopItem } from "./data/creationCatalog";
+import { CharacterShop, CyberwarePanel } from "./components/CharacterEquipment";
 import { officialSources } from "./data/officialSources";
 import { dataPackTemplate } from "./data/templates";
 import {
@@ -663,7 +667,7 @@ function CampaignSetupPanel({
       </div>
       {preparationError && <p role="alert">{preparationError}</p>}
       <WorkspaceModal open={modal === 'background'} title={selectedModule.title} onClose={() => setModal(null)}><ModuleBackgroundPanel key={selectedModule.id} module={selectedModule} /></WorkspaceModal>
-      <WorkspaceModal open={modal === 'character'} title="编辑边缘行者" onClose={() => setModal(null)}>{modal === 'character' && <CharacterPanel character={character} creation={creation} onChange={next => { setCharacter(next); setModal(null); }} />}</WorkspaceModal>
+      <WorkspaceModal open={modal === 'character'} title="编辑边缘行者" onClose={() => setModal(null)}>{modal === 'character' && <CharacterPanel character={character} creation={creation} readOnly={campaign.runner.configured&&!creation} onChange={next => { setCharacter(next); setModal(null); }} />}</WorkspaceModal>
     </section>
   );
 }
@@ -754,6 +758,18 @@ function WorldEventReview({ campaign, event, onCampaign }: {
   </article>;
 }
 
+function useExpandedRail(query:string) {
+  const [expanded,setExpanded]=useState(()=>!window.matchMedia?.(query).matches);
+  useEffect(()=>{
+    if(!window.matchMedia)return;
+    const media=window.matchMedia(query);
+    const update=()=>setExpanded(!media.matches);
+    media.addEventListener('change',update);
+    return()=>media.removeEventListener('change',update);
+  },[query]);
+  return [expanded,setExpanded] as const;
+}
+
 function RunnerConsolePanel({
   campaign,
   onCampaign,
@@ -775,9 +791,16 @@ function RunnerConsolePanel({
   const [streamPreview,setStreamPreview]=useState('');
   const [retrySeconds,setRetrySeconds]=useState(0);
   const [moreToolsOpen,setMoreToolsOpen]=useState(false);
+  const [allToolsVisible,setAllToolsVisible]=useState(false);
+  const [choicesFit,setChoicesFit]=useState(false);
+  const toolsRailRef=useRef<HTMLElement>(null);
+  const actionRailRef=useRef<HTMLElement>(null);
+  const actionHeaderRef=useRef<HTMLDivElement>(null);
+  const choicesRef=useRef<HTMLDivElement>(null);
   const [drawer, setDrawer] = useState<"character" | "mission" | "journal" | "background" | "settings" | "dice" | "life" | "market" | "novel" | "progress" | null>(null);
   const [showAllChoices,setShowAllChoices]=useState(false);
-  const [actionsOpen,setActionsOpen]=useState(true);
+  const [actionsOpen,setActionsOpen]=useExpandedRail('(max-width:1099px)');
+  const [toolsOpen,setToolsOpen]=useExpandedRail('(max-width:1199px)');
   const sidePanelRef=useRef<HTMLElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
   const submissionLock = useRef(false);
@@ -902,13 +925,13 @@ function RunnerConsolePanel({
     finally { if(activeAiRequests.get(pending.id)===controller){activeAiRequests.delete(pending.id);setStreamPreview('');setBusy(false);submissionLock.current=false;} }
   }
 
-  const submitIntent = async (rawIntent: string, choice?: RunnerChoice, continuation?:'opening'|'check') => {
+  const submitIntent = async (rawIntent: string, choice?: RunnerChoice, continuation?:'opening'|'check', resolvedCampaign?:Campaign) => {
     const trimmed = rawIntent.trim();
-    if (!trimmed || submissionLock.current || actionBlocked) return;
+    if (!trimmed || submissionLock.current || aiRunning || failure || (awaitingCheck && !resolvedCampaign) || (lastResponse?.type==='check' && continuation!=='check')) return;
     submissionLock.current = true;
     setBusy(true);
 
-    let nextCampaign = campaign;
+    let nextCampaign = resolvedCampaign??campaign;
     const playerTurn = createRunnerTurn({
       sceneId:campaign.runner.sceneId,moduleId:campaign.runner.moduleId,
       sceneTitle: nextCampaign.currentScene.title,
@@ -988,27 +1011,50 @@ function RunnerConsolePanel({
 
   const lastTurn = campaign.runner.turns[campaign.runner.turns.length - 1];
   const hasStarted = campaign.runner.turns.some(turn => turn.type === "gm");
-  const drawerTitles = { character: "角色与装备", mission: "当前委托", journal: "冒险记录", background: "故事与资料", settings: "游戏设置", dice: "掷骰判定", life: "人生路径", market: "街头商店", novel: "我的夜之城小说", progress:'场景进展' };
+  const choicesFingerprint=latestChoices.map(choice=>`${choice.label}:${choice.detail??choice.intent}`).join('|');
+  useEffect(()=>{
+    const rail=toolsRailRef.current;
+    if(!rail||typeof ResizeObserver==='undefined')return;
+    const update=()=>setAllToolsVisible(rail.clientHeight>=700&&window.innerWidth>900);
+    const observer=new ResizeObserver(update);observer.observe(rail);update();
+    return()=>observer.disconnect();
+  },[]);
+  useEffect(()=>{
+    const rail=actionRailRef.current,header=actionHeaderRef.current,group=choicesRef.current;
+    if(!rail||!header||!group||!actionsOpen||!hasStarted||actionBlocked||typeof ResizeObserver==='undefined'){setChoicesFit(false);return;}
+    const update=()=>{
+      const buttons=[...group.querySelectorAll<HTMLElement>('[data-runner-choice]')];
+      if(!buttons.length){setChoicesFit(false);return;}
+      const rowHeight=Math.max(...buttons.map(button=>Math.max(button.scrollHeight+2,button.getBoundingClientRect().height)));
+      const available=window.innerWidth<=900?Math.min(260,window.innerHeight*.35):rail.clientHeight-header.offsetHeight-80;
+      setChoicesFit(rowHeight*buttons.length+8*(buttons.length-1)<=available);
+    };
+    const observer=new ResizeObserver(update);observer.observe(rail);observer.observe(header);observer.observe(group);update();
+    return()=>observer.disconnect();
+  },[actionsOpen,hasStarted,actionBlocked,choicesFingerprint]);
+  const allChoicesVisible=showAllChoices||choicesFit;
+  const drawerTitles = { character: "角色与装备", mission: "当前委托", journal: "日志", background: "背景", settings: "设置", dice: "掷骰判定", life: "记忆", market: "商店", novel: "手稿", progress:'场景进展' };
   return (
-    <section className={`game-session${drawer?' has-side-panel':''}`}>
+    <section className={`game-session${drawer?' has-side-panel':''}${drawer==='dice'?' has-dice-panel':''}${drawer==='market'||drawer==='novel'?' has-wide-panel':''}${toolsOpen?'':' tools-collapsed'}${actionsOpen?'':' actions-collapsed'}`}>
       <header className="game-status">
         <div><span className="game-eyebrow">{module.title}</span><h2>{campaign.currentScene.title}</h2></div>
         <div className="game-vitals"><span>{campaign.character.handle}</span><HelpTip label="生命值说明" text={fieldHelp('HP')}><span className="health-value">HP {campaign.character.hp.current}/{campaign.character.hp.max}</span></HelpTip><HelpTip label="人性说明" text={fieldHelp('人性')}>人性 {campaign.character.humanity.current}</HelpTip></div>
       </header>
-      <nav className="game-toolbar" aria-label="游戏工具">
+      <nav ref={toolsRailRef} className="game-toolbar" aria-label="游戏工具">
+        <button type="button" className="rail-toggle" aria-label={toolsOpen?'收起工具栏':'展开工具栏'} aria-expanded={toolsOpen} title={toolsOpen?'收起工具栏':'展开工具栏'} onClick={()=>setToolsOpen(value=>!value)}>{toolsOpen?<PanelLeftClose size={18}/>:<PanelLeftOpen size={18}/>}<span>工具</span></button>
         <IconButton label="场景进展" shortLabel="进展" icon={<ChevronRight size={17}/>} disabled={aiRunning} onClick={()=>setDrawer('progress')} />
         <IconButton label="角色与装备" shortLabel="角色" icon={<Shield size={17} />} onClick={() => setDrawer("character")} />
         <IconButton label={`当前委托${campaign.worldHistory?.filter(event => event.status !== 'resolved').length ? ` · ${campaign.worldHistory.filter(event => event.status !== 'resolved').length}项待结算` : ''}`} shortLabel="委托" icon={<ListChecks size={17} />} onClick={() => setDrawer("mission")} />
-        <IconButton label="人生路径" shortLabel="背景与记忆" icon={<Fingerprint size={17} />} onClick={() => setDrawer("life")} disabled={busy} />
-        <details className="session-more-tools" open={moreToolsOpen}><summary aria-expanded={moreToolsOpen} title="更多游戏工具" onClick={event=>{event.preventDefault();setMoreToolsOpen(value=>!value);}}><MoreHorizontal size={18}/><span>更多</span></summary>{moreToolsOpen && <div onClick={event=>{if((event.target as HTMLElement).closest('button'))setMoreToolsOpen(false);}}>
-        <IconButton label="冒险记录" icon={<NotebookText size={17} />} onClick={() => setDrawer("journal")} disabled={busy} />
-        <IconButton label="小说手稿" icon={<BookMarked size={17} />} onClick={() => setDrawer("novel")} disabled={busy} />
-        <IconButton label="街头商店" icon={<ShoppingBag size={17} />} onClick={() => setDrawer("market")} disabled={busy} />
-        <IconButton label="故事与资料" icon={<BookOpen size={17} />} onClick={() => setDrawer("background")} disabled={busy} />
-        <IconButton label="游戏设置" icon={<Settings size={17} />} onClick={() => setDrawer("settings")} disabled={busy} />
-        <IconButton label="另存为新存档" icon={<Archive size={17}/>} onClick={()=>onSave(true)}/>
+        <IconButton label="人生路径" shortLabel="记忆" icon={<Fingerprint size={17} />} onClick={() => setDrawer("life")} disabled={busy} />
+        <details className="session-more-tools" open={allToolsVisible||moreToolsOpen}><summary hidden={allToolsVisible} aria-expanded={moreToolsOpen} title="更多游戏工具" onClick={event=>{event.preventDefault();setMoreToolsOpen(value=>!value);}}><MoreHorizontal size={18}/><span>更多</span></summary>{(allToolsVisible||moreToolsOpen) && <div onClick={event=>{if((event.target as HTMLElement).closest('button'))setMoreToolsOpen(false);}}>
+        <IconButton label="冒险记录" shortLabel="日志" icon={<NotebookText size={17} />} onClick={() => setDrawer("journal")} disabled={busy} />
+        <IconButton label="小说手稿" shortLabel="手稿" icon={<BookMarked size={17} />} onClick={() => setDrawer("novel")} disabled={busy} />
+        <IconButton label="街头商店" shortLabel="商店" icon={<ShoppingBag size={17} />} onClick={() => setDrawer("market")} disabled={busy} />
+        <IconButton label="故事与资料" shortLabel="背景" icon={<BookOpen size={17} />} onClick={() => setDrawer("background")} disabled={busy} />
+        <IconButton label="游戏设置" shortLabel="设置" icon={<Settings size={17} />} onClick={() => setDrawer("settings")} disabled={busy} />
+        <IconButton label="另存为新存档" shortLabel="另存" icon={<Archive size={17}/>} onClick={()=>onSave(true)}/>
         </div>}</details>
-        <div className="session-save-actions"><IconButton label="本地保存" icon={<Save size={17} />} onClick={()=>onSave()} /><IconButton label="保存并退出" icon={<LogOut size={17} />} onClick={()=>{cancelPending();onExit();}} /></div>
+        <div className="session-save-actions"><IconButton label="本地保存" shortLabel="保存" icon={<Save size={17} />} onClick={()=>onSave()} /><IconButton label="保存并退出" shortLabel="退出" icon={<LogOut size={17} />} onClick={()=>{cancelPending();onExit();}} /></div>
       </nav>
       <div className="game-story" ref={logRef} role="log" aria-label="故事记录" aria-live="polite" aria-busy={busy}>
         <div className="scene-intro"><span className="game-eyebrow">当前目标</span><p>{campaign.currentScene.objective}</p></div>
@@ -1030,7 +1076,11 @@ function RunnerConsolePanel({
         {busy && streamPreview && <p className="gm-stream-preview" aria-label="正在生成的主持叙述">{gmNarration(streamPreview)}</p>}
       </div>
       <footer className="game-action-dock">
-        {awaitingCheck && <div className="game-error" role="status"><span>等待判定：{awaitingCheck.checkRequest!.reason}</span><button type="button" onClick={()=>setDrawer('dice')}>进行这次判定</button><button type="button" onClick={()=>commitTurns(campaign,[createRunnerTurn({type:'log',speaker:campaign.character.handle,body:'你暂缓了这项行动，重新考虑下一步。'})],'暂缓待判定行动')}>暂缓行动</button></div>}
+        <div className="interaction-status" aria-label="互动阶段" role="status">
+          <strong>{aiRunning?'主持回应中':failure?'回应待恢复':awaitingCheck?'等待判定':lastTurn?.type==='check'?'等待叙述后果':'自由互动'}</strong>
+          <span>{aiRunning?'本次行动已提交，请勿重复发送。':failure?'行动已保留，重试不会重复提交。':awaitingCheck?'这项行动尚未执行，不能通过继续聊天跳过检定。':lastTurn?.type==='check'?'结果已保存，不需重掷；继续后由主持说明后果。':campaign.runner.mode==='offline'?'可询问、观察与提出行动；离线主持只提供索引，不自动裁定风险行动成功。':'普通问答无需掷骰；有风险的行动由主持先说明目标、风险与判定依据。'}</span>
+        </div>
+        {awaitingCheck && <div className="game-error"><span>待执行：{awaitingCheck.checkRequest!.reason}</span><button type="button" onClick={()=>setDrawer('dice')}>进行这次判定</button><button type="button" onClick={()=>{setDrawer(null);commitTurns(campaign,[createRunnerTurn({type:'log',speaker:campaign.character.handle,body:`放弃尚未执行的行动：${awaitingCheck.checkRequest!.reason}。未掷骰，不计为成功，不获得该行动的线索、物品或报酬。`,sceneId:campaign.runner.sceneId,moduleId:campaign.runner.moduleId,sceneInstanceId:campaign.currentScene.id})],'放弃待判定行动');}}>放弃本次尝试</button><details><summary>为什么需要判定？</summary><p>{awaitingCheck.checkRequest!.reason}</p><p>检定解决这项行动的不确定性，不是每句话都需要掷骰。查看上一条主持回复中的风险说明；若目标或风险不清楚，可先放弃本次尝试，再询问主持，不会视为已经完成行动。</p><p>数值先匹配场景原文；通用建议会单独标记，不能当作模组固定值。</p></details></div>}
         {failure && <div className="game-error" role="alert"><span>{failure.message.startsWith('已停止等待')?'已停止等待，行动已保留。':/429|1302|1305/.test(failure.message)?'服务繁忙或限流，行动已保留；可稍后重试或切换离线。':/504|超时/.test(failure.message)?'主持响应超时，行动已保留。':'连接中断，行动已保留。'}</span>
           <details><summary>{failure.message.startsWith('已停止等待')?'保留的行动':'错误详情'}</summary><p>{failure.message}</p></details>
           <button type="button" disabled={aiRunning||retrySeconds>0} onClick={() => resumePending()}>{retrySeconds?`${retrySeconds}秒后可重试`:'重试回应'}</button>
@@ -1041,74 +1091,61 @@ function RunnerConsolePanel({
           {!activeAiRequests.has(unresolved.id) && <><button type="button" disabled={busy} onClick={() => resumePending()}>重新获取主持回复</button><button type="button" disabled={busy} onClick={() => resumePending(true)}>改用离线回应</button></>}</div>}
         {lastTurn?.type==='check' && <p role="status" className="hint">判定结果已记录。选择「交给主持继续」描述后果，无需重复掷骰。</p>}
         <form className="game-compose" onSubmit={event => { event.preventDefault(); submitIntent(intent); }}>
-          <textarea aria-label="你的行动" value={intent} disabled={aiRunning} onChange={event => setIntent(event.target.value)} placeholder="输入你的行动…" rows={2}
+          <textarea aria-label="你的行动" value={intent} disabled={actionBlocked||lastTurn?.type==='check'} onChange={event => setIntent(event.target.value)} placeholder={awaitingCheck?'先完成判定，或放弃本次尝试':lastTurn?.type==='check'?'先继续叙述后果，无需重复掷骰':'询问情况，或描述你想尝试的行动…'} rows={2}
             onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submitIntent(intent); } }} />
-          <IconButton label="提交行动" icon={<Send size={19} />} onClick={() => submitIntent(intent)} disabled={actionBlocked || !intent.trim()} variant="primary" />
+          <IconButton label="提交行动" icon={<Send size={19} />} onClick={() => submitIntent(intent)} disabled={actionBlocked || lastTurn?.type==='check' || !intent.trim()} variant="primary" />
         </form>
       </footer>
-      <aside className="game-action-rail" aria-label="行动栏">
-        <div className="action-prompt"><span>{aiRunning ? "等待主持" : failure ? "先恢复这条行动的回应" : awaitingCheck ? '先完成当前判定' : lastTurn?.type === "check" ? "判定已记录" : "你准备怎么做？"}</span>
-          <button type="button" className="choice-expand" aria-expanded={actionsOpen} aria-controls="runner-action-options" onClick={()=>setActionsOpen(value=>!value)}>{actionsOpen?'收起行动栏':'展开行动栏'}</button>
+      <aside ref={actionRailRef} className="game-action-rail" aria-label="行动栏" hidden={drawer==='dice'}>
+        <div ref={actionHeaderRef} className="action-prompt"><span>{aiRunning ? "等待主持" : failure ? "恢复回应" : awaitingCheck ? '等待判定' : lastTurn?.type === "check" ? "判定已记录" : "行动"}</span>
+          <button type="button" className="choice-expand rail-toggle" aria-label={actionsOpen?'收起行动栏':'展开行动栏'} title={actionsOpen?'收起行动栏':'展开行动栏'} aria-expanded={actionsOpen} aria-controls="runner-action-options" onClick={()=>setActionsOpen(value=>!value)}>{actionsOpen?<PanelRightClose size={18}/>:<PanelRightOpen size={18}/>}<span>{actionsOpen?'收起行动栏':'展开行动栏'}</span></button>
           {!actionBlocked && lastTurn?.type!=='check' && hasStarted && <small className="action-count">{latestChoices.length} 项行动</small>}
           {roleGuide(campaign.character.role) && <button className="role-action" type="button" title={`${roleGuide(campaign.character.role)?.summary} 核心规则 PDF ${roleGuide(campaign.character.role)?.page}页。`} disabled={actionBlocked} onClick={() => submitIntent(`使用身份能力：${roleGuide(campaign.character.role)?.action}`)}>{roleGuide(campaign.character.role)?.ability} · {campaign.character.rank}</button>}
           <IconButton label="掷骰判定" icon={<Zap size={16} />} onClick={() => setDrawer("dice")} disabled={busy} />
         </div>
-        <div id="runner-action-options" className="game-options" role="group" aria-label="可选行动" hidden={!actionsOpen}>
+        <div ref={choicesRef} id="runner-action-options" className="game-options" role="group" aria-label="可选行动" hidden={!actionsOpen}>
           {awaitingCheck || aiRunning || failure?null:lastTurn?.type === "check" ? <button type="button" disabled={aiRunning} onClick={() => submitIntent("请根据刚才记录的真实判定结果描述后果并继续。",undefined,'check')}>交给主持继续 <ChevronRight size={16} /></button> :
-            !hasStarted && campaign.runner.mode === "ai" ? <button className="opening-action" type="button" disabled={aiRunning} onClick={() => submitIntent(scene.starterPrompt ?? "请介绍开场和可选行动",undefined,'opening')}><Play size={17} />让主持人开场</button> :
-            (showAllChoices?latestChoices:primaryChoices).map(choice => <button key={choice.id} type="button" aria-label={choice.label} title={actionHint(choice)} disabled={actionBlocked} onClick={() => submitIntent(choice.intent, choice)}><span className="choice-copy"><small className="action-kind">{actionLabel(choice)}</small><strong>{choice.label}</strong><small>{choice.detail || choice.intent}</small></span><ChevronRight size={16} /></button>)}
+            !hasStarted && campaign.runner.mode === "ai" ? <button className="opening-action" type="button" aria-label="让主持人开场" disabled={aiRunning} onClick={() => submitIntent(scene.starterPrompt ?? "请介绍开场和可选行动",undefined,'opening')}><Play size={18}/><span className="choice-copy"><strong>开始故事</strong></span><ChevronRight size={16}/></button> :
+            latestChoices.map(choice => {const visible=allChoicesVisible||primaryChoices.includes(choice);return <button key={choice.id} data-runner-choice className={visible?undefined:'folded-choice'} aria-hidden={!visible} tabIndex={visible?0:-1} type="button" aria-label={choice.label} title={actionHint(choice)} disabled={actionBlocked||!visible} onClick={() => submitIntent(choice.intent, choice)}><span className="choice-copy"><small className="action-kind">{actionLabel(choice)}</small><strong>{choice.label}</strong><small>{choice.detail || choice.intent}</small></span><ChevronRight size={16} /></button>;})}
         </div>
-        {actionsOpen && !actionBlocked && latestChoices.length>3 && lastTurn?.type!=='check' && <button type="button" className="choice-expand" aria-expanded={showAllChoices} onClick={()=>setShowAllChoices(value=>!value)}>{showAllChoices?'收起行动':`更多行动（${latestChoices.length-3}）`}</button>}
+        {actionsOpen && hasStarted && !choicesFit && !actionBlocked && latestChoices.length>3 && lastTurn?.type!=='check' && <button type="button" className="choice-expand" aria-expanded={showAllChoices} onClick={()=>setShowAllChoices(value=>!value)}>{showAllChoices?'收起行动':`更多行动（${latestChoices.length-3}）`}</button>}
       </aside>
       <aside ref={sidePanelRef} className="game-drawer game-side-panel" hidden={!drawer} aria-label={drawer?drawerTitles[drawer]:undefined}>
         <header><h2>{drawer ? drawerTitles[drawer] : ""}</h2><IconButton label="关闭" icon={<X size={20} />} onClick={() => setDrawer(null)} /></header>
         <div className="drawer-body">
-          {drawer === "character" && <>
-            <h3>{campaign.character.handle}</h3><p className="hint">{campaign.character.role} · HP {campaign.character.hp.current}/{campaign.character.hp.max} · 人性 {campaign.character.humanity.current}</p>
-            <div className="play-inventory-summary"><span><small>欧币</small><strong>{campaign.character.eurobucks} eb</strong></span><span><small>生命</small><strong>{campaign.character.hp.current}/{campaign.character.hp.max}</strong></span><span><small>人性 / 共情</small><strong>{campaign.character.humanity.current} / {effectiveEmpathy(campaign.character)}</strong></span><span><small>成长点</small><strong>{campaign.character.improvementPoints}</strong></span></div>
-            <h4>武器</h4>
-            {campaign.character.weapons.length > 0 ? <div className="play-inventory-list">{campaign.character.weapons.map((weapon, index) => { const item = CREATION_CATALOG.find(entry => entry.name === weapon); return <div key={`${weapon}-${index}`}><HelpTip label={`${weapon}说明`} text={item?equipmentHelp(item):'手动登记物品；请依据自有资料填写属性，当前未自动结算。'}><strong>{weapon}</strong></HelpTip><small>{item?.damage ? `伤害 ${item.damage} · ROF ${item.rof}` : '尚未映射数值'}</small></div>; })}</div> : <p className="hint">尚未登记武器</p>}
-            <h4>防具与装备</h4><div className="play-armor-sp"><span>头部 SP <b>{campaign.character.armor.headSp}</b></span><span>身体 SP <b>{campaign.character.armor.bodySp}</b></span></div>
-            {campaign.character.gear.length?<div className="play-inventory-list">{campaign.character.gear.map((name,index)=>{const purchase=campaign.character.purchases?.find(p=>p.title===name);const item=getShopItem(purchase?.catalogId??'')??CREATION_CATALOG.find(item=>item.name===name);return <HelpTip key={`${name}-${index}`} label={`${name}说明`} text={item?equipmentHelp(item):'手动登记物品；当前不自动赋予数值效果。'}>{name}</HelpTip>;})}</div>:<p>尚未登记装备</p>}
-            <div className="play-stat-grid">{(Object.keys(STAT_LABELS) as StatKey[]).map(stat => <div key={stat} title={`基础${STAT_LABELS[stat]}：${campaign.character.stats[stat]}；显示当前有效值`}><small>{STAT_LABELS[stat]}</small><strong>{stat==='emp'?effectiveEmpathy(campaign.character):equipmentStats(campaign.character)[stat]}</strong></div>)}</div>
-            <details><summary>技能一览</summary><div className="play-skill-list">{RED_SKILLS.filter(skill => (campaign.character.skills.find(s => s.skillId === skill.id)?.level ?? 0) > 0).map(skill => <span key={skill.id}><SkillAnnotatedText text={skill.name} character={campaign.character}/> {campaign.character.skills.find(s => s.skillId === skill.id)?.level}</span>)}</div></details>
-            <h4>义体人体图</h4><CyberwareOverview character={campaign.character} />
-            <details><summary>编辑角色</summary><CharacterPanel character={campaign.character} onChange={character => onCampaign({ ...campaign, character })} /></details>
-          </>}
+          {drawer === "character" && <PlayCharacterSheet character={campaign.character}/>}
           {drawer === "life" && <section className="life-in-play">
-            <h3>{campaign.character.handle} 的人生路径</h3>
-            <p className="hint">AI 记忆来自本地存档：人物背景、最近10条对话、5条最近事件、8条AI剧情摘要和12条确认进展。AI摘要只是未确认的叙事参考；重要事实请检查后加入长期记忆并保存。每轮最多发送3000字长期记忆。</p>
-            <TextAreaField label="主持长期记忆（已确认线索与当前阻碍）" value={campaign.playerNotes??''} onChange={playerNotes=>onCampaign({...campaign,playerNotes})}/>
+            <h3>{campaign.character.handle}</h3>
+            <details><summary>长期笔记 <HelpTip label="长期笔记说明" text="补充已确认的重要事实。场景进展会单独交给主持，无需在这里重复填写；旧笔记仍完整保存在存档中。AI 摘要需要你确认，不能自动视为事实。"/></summary><TextAreaField label="长期笔记" value={campaign.playerNotes??''} onChange={playerNotes=>onCampaign({...campaign,playerNotes})}/></details>
             <details><summary>已登记联系人 · {campaign.npcs.length}</summary>{campaign.npcs.map(npc=><p key={npc.id}><strong>{npc.name}</strong> · {npc.role} · {{hostile:'敌对',cold:'冷淡',neutral:'中立',warm:'友善',loyal:'忠诚'}[npc.disposition]}</p>)}<p className="hint">存档关系不代表人物当前在场或已经同意帮助。</p></details>
-            <h4>最近的 AI 剧情摘要（待确认）</h4>
+            <details><summary>待确认摘要</summary>
             {campaign.journal.filter(item=>item.type==='ai' && item.moduleId===module.id).slice(0,6).map(entry=>{
               const notes=campaign.playerNotes??'';
               const alreadySaved=notes.includes(entry.body);
               const fits=notes.length+entry.body.length+1<=3000;
               return <div className="memory-recap" key={entry.id}><p>{entry.body}</p><button type="button" disabled={alreadySaved||!fits} onClick={()=>onCampaign({...campaign,playerNotes:[notes.trim(),entry.body].filter(Boolean).join('\n')})}>{alreadySaved?'已确认':'确认加入长期记忆'}</button>{!fits&&!alreadySaved?<small>记忆已接近3000字，请先整理旧笔记。</small>:null}</div>;
             })}
+            </details>
             {campaign.journal.some(item=>item.type==='ai' && !item.moduleId) && <details><summary>旧版摘要（未归属剧本）</summary>{campaign.journal.filter(item=>item.type==='ai' && !item.moduleId).slice(0,6).map(entry=><p key={entry.id}>{entry.body}</p>)}</details>}
             {[["culture", "文化背景与母语"], ["personality", "性格"], ["family", "家庭"], ["motivation", "人生目标"], ["friends", "朋友"], ["enemies", "敌人"], ["romance", "情感经历"], ["role", "身份经历"]].map(([id, label]) => <div className="life-fact" key={id}><strong>{label}</strong><p>{campaign.character.backgroundDetails?.[id]?.trim() || '尚未填写'}</p></div>)}
             <h4>其他故事</h4><p style={{whiteSpace:'pre-wrap'}}>{campaign.character.lifepathNotes || '暂无补充'}</p>
-            <details><summary>编辑人生路径</summary><CharacterPanel character={campaign.character} onChange={character => onCampaign({ ...campaign, character })} /></details>
           </section>}
           {drawer === "market" && <section className="market-in-play">
-            <h3>街头采购 · 余额 {campaign.character.eurobucks} eb</h3>
-            <p className="hint">货物是否在售取决于当前场景、货源与身份门路；目录价格不代表现场一定买得到。</p>
             <CharacterShop character={campaign.character} creation={false} onChange={character=>onCampaign(appendJournal({...campaign,character},{type:'note',title:'装备采购',body:character.purchases?.slice(-1)[0]?.title??'采购已登记'}))}/>
           </section>}
           {drawer === "novel" && <section className="novel-in-play">
-            <div className="novel-toolbar"><p className="hint">自动将主持叙述整理成可编辑的章节手稿；编辑不会覆盖原始跑团日志。</p><button type="button" onClick={() => downloadText(`${campaign.character.handle}-夜之城手稿.md`, buildManuscript(campaign))}><Download size={15}/> 导出 Markdown</button></div>
-            <h3>{campaign.name}</h3><p className="hint">2045 · 主角 {campaign.character.handle}</p>
+            <div className="novel-toolbar"><h3>{campaign.name}</h3><button type="button" onClick={() => downloadText(`${campaign.character.handle}-夜之城手稿.md`, buildManuscript(campaign))}><Download size={15}/> 导出</button></div>
+            <p className="hint">2045 · {campaign.character.handle}</p>
             {campaign.runner.turns.filter(turn => turn.type === 'gm').length === 0 && <p>开始跑团后，每次 GM 叙事都会收录在这里。</p>}
-            {campaign.runner.turns.filter(turn => turn.type === 'gm').map((turn, index) => <article className="novel-entry" key={turn.id}>
-              <h4>片段 {index+1} · {turn.sceneTitle || campaign.currentScene.title}</h4>
-              <textarea aria-label={`编辑小说片段${index+1}`} rows={7} value={campaign.storyEdits?.[turn.id] ?? turn.body} onChange={event => onCampaign({ ...campaign, storyEdits: { ...(campaign.storyEdits ?? {}), [turn.id]: event.target.value } })}/>
-            </article>)}
+            {campaign.runner.turns.filter(turn => turn.type === 'gm').map((turn, index, turns) => <details className="novel-entry" key={turn.id} open={index===turns.length-1}>
+              <summary>{index+1} · {turn.sceneTitle || campaign.currentScene.title}</summary>
+              <p className="manuscript-preview">{gmNarration(campaign.storyEdits?.[turn.id]??turn.body)}</p>
+              <details><summary>编辑</summary><textarea aria-label={`编辑小说片段${index+1}`} rows={10} value={campaign.storyEdits?.[turn.id] ?? gmNarration(turn.body)} onChange={event => onCampaign({ ...campaign, storyEdits: { ...(campaign.storyEdits ?? {}), [turn.id]: event.target.value } })}/></details>
+            </details>)}
           </section>}
-          {drawer==='mission' && <section className="drawer-entry"><h3>当前场景目标</h3><p>{campaign.currentScene.objective}</p><label className="field"><span>当前目标状态</span><select aria-label="当前目标状态" value={campaign.currentScene.status} onChange={event=>onCampaign(appendJournal({...campaign,currentScene:{...campaign.currentScene,status:event.target.value as Campaign['currentScene']['status']}},{type:'note',title:'场景目标状态',body:`${campaign.currentScene.title}：${event.target.value==='resolved'?'已达成':event.target.value==='failed'?'未能达成':'进行中'}`}))}><option value="open">进行中</option><option value="resolved">已达成</option><option value="failed">未能达成</option></select></label><TextAreaField label="已确认线索与当前阻碍" value={campaign.playerNotes??''} onChange={playerNotes=>onCampaign({...campaign,playerNotes})}/></section>}
+          {drawer==='mission' && <section className="drawer-entry"><p>{campaign.currentScene.objective}</p><label className="field"><span>状态</span><select aria-label="当前目标状态" value={campaign.currentScene.status} onChange={event=>onCampaign(appendJournal({...campaign,currentScene:{...campaign.currentScene,status:event.target.value as Campaign['currentScene']['status']}},{type:'note',title:'场景目标状态',body:`${campaign.currentScene.title}：${event.target.value==='resolved'?'已达成':event.target.value==='failed'?'未能达成':'进行中'}`}))}><option value="open">进行中</option><option value="resolved">已达成</option><option value="failed">未能达成</option></select></label></section>}
           {drawer === 'mission' && !!campaign.worldHistory?.length && <section className="drawer-entry"><h3>街区行动与长期后果</h3><p className="hint">先依据 GM 描述或实际骰子判定确定结果，再确认势力、NPC 和热度变化；已结算事件会影响后续 AI 主持。</p>{[...campaign.worldHistory].reverse().slice(0, 12).map(event => <WorldEventReview key={event.id} campaign={campaign} event={event} onCampaign={onCampaign} />)}</section>}
-          {drawer === "mission" && campaign.missions.map(mission => <section className="drawer-entry" key={mission.id}><h3>{mission.title}</h3><p>{mission.target}</p><p className="hint">雇主：{mission.client} · 报酬：{mission.reward}</p></section>)}
+          {drawer === "mission" && campaign.missions.filter(mission=>mission.client!=='未确认'||mission.target!=='未确认').map(mission => <section className="drawer-entry" key={mission.id}><h3>{mission.title}</h3><p>{mission.target}</p><p className="hint">雇主：{mission.client} · 报酬：{mission.reward}</p></section>)}
           {drawer === "journal" && campaign.journal.map(entry => <details className="drawer-entry" key={entry.id}><summary>{entry.title}</summary><p style={{ whiteSpace: "pre-wrap" }}>{entry.body}</p></details>)}
           {drawer === "background" && <><ModuleBackgroundPanel module={module} /><div className="book-links"><a href="/api/local-sources/red-core-20261010/pdf" target="_blank" rel="noreferrer">核心规则书 ↗</a><a href="/api/local-sources/red-sheet-20260507/pdf" target="_blank" rel="noreferrer">原版人物卡 ↗</a><a href="/api/local-sources/red-streets-20261010/pdf" target="_blank" rel="noreferrer">街头故事 ↗</a></div></>}
           {drawer === "settings" && <>
@@ -1123,8 +1160,11 @@ function RunnerConsolePanel({
             <IconButton label="完整工具" icon={<Settings size={16} />} onClick={onFullMode} />
           </>}
           {drawer === 'progress' && <SceneProgressPanel key={campaign.currentScene.id} campaign={campaign} onCampaign={onCampaign} />}
-          {drawer === "dice" && <CheckPanel key={awaitingCheck?.id??adviceTurn?.id??'free-check'} request={awaitingCheck?.checkRequest} suggestions={checkSuggestions} adviceText={adviceTurn?.body} campaign={campaign} onCampaign={(next,checkResult) => {
-            onCampaign({ ...next, runner: { ...next.runner, turns: [...next.runner.turns, createRunnerTurn({ type: "check", speaker: "规则判定", body: next.journal[0].body,checkResult,sceneId:campaign.runner.sceneId,sceneInstanceId:campaign.currentScene.id,moduleId:campaign.runner.moduleId,sceneTitle:campaign.currentScene.title })] } });
+          {drawer==='dice' && lastTurn?.type==='check' && <div className="dice-continuation"><strong>判定已记录</strong><p>{lastTurn.checkResult?`${lastTurn.checkResult.skillName} · ${lastTurn.checkResult.success?'成功':'失败'} · ${lastTurn.checkResult.total} / DV ${lastTurn.checkResult.dv}`:'判定已记录'}</p><button type="button" disabled={actionBlocked} onClick={()=>{setDrawer(null);submitIntent('请根据刚才记录的真实判定结果描述后果并继续。',undefined,'check');}}>交给主持继续</button></div>}
+          {drawer === "dice" && <CheckPanel key={awaitingCheck?.id??adviceTurn?.id??'free-check'} request={awaitingCheck?.checkRequest} suggestions={checkSuggestions} adviceText={adviceTurn?.body} campaign={campaign} canContinue onCampaign={(next,checkResult,continueStory) => {
+            const resolved={ ...next, runner: { ...next.runner, turns: [...next.runner.turns, createRunnerTurn({ type: "check", speaker: "规则判定", body: next.journal[0].body,checkResult,sceneId:campaign.runner.sceneId,sceneInstanceId:campaign.currentScene.id,moduleId:campaign.runner.moduleId,sceneTitle:campaign.currentScene.title })] } };
+            if(continueStory){setDrawer(null);void submitIntent('请根据刚才记录的真实判定结果描述后果并继续。',undefined,'check',resolved);}
+            else onCampaign(resolved);
           }} />}
         </div>
       </aside>
@@ -1218,7 +1258,11 @@ function SimpleWorkspace({
   );
 }
 
-function CharacterPanel({
+function CharacterPanel(props:{character:CharacterSheet;creation?:boolean;readOnly?:boolean;onChange:(character:CharacterSheet)=>void}) {
+  return props.readOnly?<PlayCharacterSheet character={props.character}/>:<CharacterEditor {...props}/>;
+}
+
+function CharacterEditor({
   character: initialCharacter,
   creation = false,
   onChange,
@@ -1415,7 +1459,7 @@ function CharacterPanel({
   );
 }
 
-function CheckPanel({ campaign, onCampaign, request,suggestions=[],adviceText }: { campaign: Campaign; onCampaign: (campaign: Campaign,checkResult?:RunnerTurn['checkResult']) => void; request?:RunnerTurn['checkRequest'];suggestions?:CheckSuggestion[];adviceText?:string }) {
+function CheckPanel({ campaign, onCampaign, request,suggestions=[],adviceText,canContinue=false }: { campaign: Campaign; onCampaign: (campaign: Campaign,checkResult?:RunnerTurn['checkResult'],continueStory?:boolean) => void; request?:RunnerTurn['checkRequest'];suggestions?:CheckSuggestion[];adviceText?:string;canContinue?:boolean }) {
   const initial=request ?? (suggestions.length===1?suggestions[0]:undefined);
   const [applied,setApplied]=useState(initial);
   const [adviceOptions,setAdviceOptions]=useState(suggestions);
@@ -1425,6 +1469,8 @@ function CheckPanel({ campaign, onCampaign, request,suggestions=[],adviceText }:
   const manualSkill=useRef(false);
   const [lookupRevision,setLookupRevision]=useState(0);
   const [sourceNotice,setSourceNotice]=useState('');
+  const [dvOrigin,setDvOrigin]=useState<'source'|'suggested'|'manual'>(initial?.sourcePage?'source':initial?.dv!==undefined?'manual':'suggested');
+  const [generalDifficulty,setGeneralDifficulty]=useState<GeneralDifficulty>('everyday');
   const [skillId, setSkillId] = useState(RED_SKILLS.some(skill=>skill.id===initial?.skillId)?initial!.skillId!:"perception");
   const [skillOverride,setSkillOverride]=useState<string|null>(null);
   const [statOverride,setStatOverride]=useState<string|null>(null);
@@ -1435,16 +1481,23 @@ function CheckPanel({ campaign, onCampaign, request,suggestions=[],adviceText }:
   const [result, setResult] = useState<string>("尚未掷骰");
   const applySuggestion=(suggestion:CheckSuggestion,manual=true)=>{
     dvDirty.current=false;manualSkill.current=false;
-    dirty.current=manual;setApplied(suggestion);setSkillId(suggestion.skillId??'perception');setSkillOverride(null);setStatOverride(null);setDv(suggestion.dv===undefined?'':String(suggestion.dv));setModifier(suggestion.modifier??0);setCondition(suggestion.condition??'standard');setUseTools(false);
+    setDvOrigin(suggestion.sourcePage?'source':suggestion.dv!==undefined?'manual':'suggested');
+    dirty.current=manual;setApplied(suggestion);setSkillId(suggestion.skillId??'perception');setSkillOverride(null);setStatOverride(null);setDv(suggestion.dv===undefined?String(recommendSkillDv(suggestion.skillId??'perception',suggestion.reason,generalDifficulty)?.dv??''):String(suggestion.dv));setModifier(suggestion.modifier??0);setCondition(suggestion.condition??'standard');setUseTools(false);
   };
   useEffect(()=>{
     if(request?.dv!==undefined && !manualSkill.current)return;
     if(!request && suggestions.length && suggestions.every(s=>s.dv!==undefined) && !manualSkill.current)return;
-    if(!request && !suggestions.length && !manualSkill.current && !lookupRevision){setSourceNotice('自由判定尚未指定行动依据；可选择技能后手动填写，或点击匹配本场景 DV。');return;}
+    if(!request && !suggestions.length && !manualSkill.current && !lookupRevision){
+      const recommendation=recommendSkillDv(skillId,'',generalDifficulty);
+      if(!dvDirty.current&&recommendation){setDv(String(recommendation.dv));setDvOrigin('suggested');}
+      setSourceNotice(recommendation?'未指定原文依据，使用通用难度建议；不是模组固定 DV。':'此类判定需距离、对抗值或专门规则，不能套用通用建议。');return;
+    }
     if(!request && !suggestions.length && campaign.runner.turns.slice(-1)[0]?.type==='check' && !manualSkill.current && !lookupRevision)return;
     const controller=new AbortController();
     const scene=findScene(findModule(campaign.runner.moduleId),campaign.runner.sceneId);
     const selected=manualSkill.current?{skillId,reason:`${scene.title}的${RED_SKILLS.find(s=>s.id===skillId)?.name}判定`}:request??(selectedAdvice!==''?suggestions[Number(selectedAdvice)]:suggestions.length===0?{skillId,reason:`${scene.title}的${RED_SKILLS.find(s=>s.id===skillId)?.name}判定`}:undefined);
+    const recommendation=selected?recommendSkillDv(selected.skillId??skillId,selected.reason,generalDifficulty):undefined;
+    if(!dvDirty.current&&selected?.dv===undefined&&recommendation){setDv(String(recommendation.dv));setDvOrigin('suggested');}
     setSourceNotice('正在核对当前场景的 DV 来源…');
     retrieveLocalSources(`${scene.title} ${RED_SKILLS.find(s=>s.id===skillId)?.name} ${adviceText??request?.reason??''}`,campaign.runner.moduleId,undefined,undefined,controller.signal,campaign.runner.sceneId).then(passages=>{
       if(controller.signal.aborted) return;
@@ -1453,10 +1506,10 @@ function CheckPanel({ campaign, onCampaign, request,suggestions=[],adviceText }:
       const found=selected?inferSourcedCheck(selected,passages,scene.title):undefined;
       if(found?.dv!==undefined){
         setApplied(found);
-        if(!dvDirty.current)setDv(String(found.dv));
+        if(!dvDirty.current){setDv(String(found.dv));setDvOrigin('source');}
         setSourceNotice(dvDirty.current?`已保留手动 DV；原文候选 DV ${found.dv}（PDF ${found.sourcePage} 页）。`:`已匹配原文 DV ${found.dv} · PDF ${found.sourcePage} 页；进入条件仍以原文为准。`);
-      }else setSourceNotice(selected?'当前技能未找到唯一且对应本场景的 DV，可手动填写。':'请选择一项判定建议，再核对其 DV。');
-    }).catch(()=>{if(!controller.signal.aborted)setSourceNotice('本机资料暂不可用，未自动猜测 DV；可手动填写。');});
+      }else setSourceNotice(recommendation?'未匹配到唯一原文 DV，已提供通用难度建议；可调整或手动填写。':selected?'此类判定需距离、对抗值或专门规则，不能套用通用建议。':'请选择一项判定建议，再核对其 DV。');
+    }).catch(()=>{if(!controller.signal.aborted)setSourceNotice(recommendation?'资料暂不可用，当前使用主持建议而非原文 DV。':'资料暂不可用；此类判定不能套用通用建议，请核对专门规则。');});
     return()=>controller.abort();
   },[adviceText,campaign.runner.moduleId,campaign.runner.sceneId,skillId,selectedAdvice,lookupRevision]);
   const skill = RED_SKILLS.find((entry) => entry.id === skillId) ?? RED_SKILLS[0];
@@ -1470,10 +1523,11 @@ function CheckPanel({ campaign, onCampaign, request,suggestions=[],adviceText }:
   const savedModifier=campaign.character.skills.find(entry=>entry.skillId===skill.id)?.modifier??0;
   const wound=woundPenalty(campaign.character);
   const equipment=equipmentBonuses(campaign.character,skill.id,condition,useTools);
+  const generalSuggestion=recommendSkillDv(skillId,request?.reason??applied?.reason??'',generalDifficulty);
   const validDv=dv.trim()!=='' && Number.isInteger(Number(dv)) && Number(dv)>0 && Number(dv)<=99;
   const validLevel=(skillOverride===null || skillOverride.trim()!=='') && Number.isInteger(skillLevel) && skillLevel>=0 && skillLevel<=10;
 
-  const roll = () => {
+  const roll = (continueStory=false) => {
     if(!validDv || !validLevel || !validStat || !Number.isInteger(modifier)) return;
     const ignoreCriticalFailure=campaign.character.role==='佣兵' && campaign.character.roleAllocations?.recovery===4 && RED_ATTACK_SKILLS.includes(skill.id);
     const check = cyberpunkRedRuleset.rollCheck({
@@ -1485,19 +1539,22 @@ function CheckPanel({ campaign, onCampaign, request,suggestions=[],adviceText }:
     });
     const critical = ignoreCriticalFailure && check.firstDie===1 ? '失手挽回：按1计算，不扣追加骰' : check.critical === "success" ? "掷出10，追加骰" : check.critical === "failure" ? "掷出1，扣除追加骰" : "普通";
     const line = `${statValue!==sheetStatValue?`本次临时属性值 ${statValue}（人物卡有效值 ${sheetStatValue}，未改写角色）；`:""}${applied?`行动：${applied.reason}；`:''}${skillLevel!==sheetLevel?`本次临时技能等级 ${skillLevel}（人物卡 ${sheetLevel}，未改写角色）；`:''}${STAT_LABELS[stat]} ${statValue} + ${skill.name} ${skillLevel} + 身份加值 ${abilityBonus} + 已存技能修正 ${savedModifier} + 装备加值 ${equipment.total}${equipment.sources.length?`（${equipment.sources.map(s=>`${s.name} PDF${s.page}`).join('、')}）`:''} + 修正 ${modifier} - 伤势惩罚 ${wound}，1d10=${check.firstDie}${check.extraDie ? ` / 追加=${check.extraDie}` : ""}，总计 ${check.total}，DV ${dv}，${check.success ? "成功" : "失败"}（必须严格超过DV），差值 ${check.margin}，${critical}`;
-    setResult(line);
+    const documentedLine=`${line}；DV依据：${dvOrigin==='source'?`原文 PDF ${applied?.sourcePage??request?.sourcePage??'待确认'} 页`:dvOrigin==='suggested'?'主持建议（通用难度，非模组固定值）':'手动填写'}。`;
+    setResult(documentedLine);
     onCampaign(
       appendJournal(campaign, {
         type: "note",
         title: "判定",
-        body: line,
+        body: documentedLine,
       }),
       {skillName:skill.name,total:check.total,dv:Number(dv),success:check.success===true},
+      continueStory,
     );
   };
 
   return (
     <Panel title="判定台" icon={<Zap size={18} />}>
+      <div className="check-context"><strong>本次行动</strong><p>{request?.reason??applied?.reason??'自由判定：先确认你要完成的具体行动，再选择技能与难度。'}</p><small>只有行动存在不确定性且失败有后果时才需要检定。成功与失败仅对应这项行动，不自动完成整个场景。</small></div>
       {adviceOptions.length>0 && <label className="field"><span>主持判定建议</span><select aria-label="主持判定建议" value={selectedAdvice} onChange={event=>{setSelectedAdvice(event.target.value);if(event.target.value!=='')applySuggestion(adviceOptions[Number(event.target.value)]);}}><option value="">手动选择技能</option>{adviceOptions.map((suggestion,index)=><option key={`${suggestion.skillId}-${index}`} value={index}>{RED_SKILLS.find(skill=>skill.id===suggestion.skillId)?.name??'待确认技能'}{suggestion.dv?` · DV ${suggestion.dv}`:' · DV待确认'}</option>)}</select></label>}
       {applied && <div className="check-prefill"><p><SkillAnnotatedText text={applied.reason} character={campaign.character}/>{applied.sourcePage?` · 来源 PDF ${applied.sourcePage} 页`:''}</p><button type="button" onClick={()=>applySuggestion(selectedAdvice!==''?adviceOptions[Number(selectedAdvice)]??applied:applied)}>重新带入建议</button></div>}
       <div className="form-grid two">
@@ -1529,14 +1586,17 @@ function CheckPanel({ campaign, onCampaign, request,suggestions=[],adviceText }:
         <label className="field"><span>检定情境</span><select aria-label="检定情境" value={condition} onChange={event=>{dirty.current=true;setCondition(event.target.value as typeof condition);}}><option value="standard">一般</option><option value="visual">视觉</option><option value="auditory">听觉</option></select></label>
         <label className="switch"><input type="checkbox" checked={useTools} onChange={event=>{dirty.current=true;setUseTools(event.target.checked);}}/>本次使用随身工具辅助</label>
         <p className="hint">装备加值 +{equipment.total}{equipment.sources.length?`：${equipment.sources.map(s=>`${s.name}（PDF${s.page}）`).join('、')}`:'，未启用适用装备效果'}。已计入的加值不要再填入修正。</p>
-        <Field label="DV" type="number" value={dv} onChange={value=>{dirty.current=true;dvDirty.current=true;setDv(value);}} />
+        <Field label="DV" type="number" value={dv} onChange={value=>{dirty.current=true;dvDirty.current=true;setDvOrigin('manual');setDv(value);}} />
+        {validDv&&<p className={`dv-origin ${dvOrigin}`} aria-label="DV依据">{dvOrigin==='source'?'原文数值':dvOrigin==='suggested'?'主持建议 · 非模组固定值':'手动数值'} <HelpTip label="DV依据说明" text={dvOrigin==='suggested'?(generalSuggestion?.explanation??'当前 DV 是主持建议，不是模组固定值。'):dvOrigin==='source'?'自动匹配了当前场景的原文数值；仍须满足原文的行动条件。':'保留你手动填写的数值，自动检索不会覆盖。'}/></p>}
+        {dvOrigin==='suggested'&&generalSuggestion&&<label className="field"><span>建议难度</span><select aria-label="建议难度" value={generalDifficulty} onChange={event=>{const difficulty=event.target.value as GeneralDifficulty;setGeneralDifficulty(difficulty);const recommendation=recommendSkillDv(skillId,request?.reason??applied?.reason??'',difficulty);if(recommendation){dvDirty.current=false;setDv(String(recommendation.dv));setDvOrigin('suggested');}}}>{GENERAL_DV_LEVELS.map(level=><option key={level.id} value={level.id}>{level.label} · DV {level.dv}</option>)}</select></label>}
         <button type="button" onClick={()=>setLookupRevision(value=>value+1)}>匹配本场景 DV</button>
         {sourceNotice&&<p className="hint">{sourceNotice}</p>}
         {!validDv && <p className="hint">尚未确认目标DV，请依据当前场景或规则填写。</p>}
         {!validLevel && <p className="hint">本次技能等级需为 0–10 的整数。</p>}
         <p className="check-formula" aria-label="判定公式">{STAT_LABELS[stat]} {statValue} + {skill.name} {skillLevel} + 综合修正 {modifier+abilityBonus+savedModifier+equipment.total-wound} + 1d10 → {validDv?`必须大于 DV ${dv}`:'待确认 DV'}</p>
         {applied?.dv!==undefined && dv!==String(applied.dv) && <p className="hint">正在使用手动 DV {dv||'（未填写）'}；来源候选为 {applied.dv}。不会自动覆盖。</p>}
-        <IconButton label="掷骰" icon={<Play size={16} />} onClick={roll} variant="primary" disabled={!validDv||!validLevel||!validStat||!Number.isInteger(modifier)} />
+        {canContinue&&<IconButton label="掷骰并继续" icon={<Play size={16}/>} onClick={()=>roll(true)} variant="primary" disabled={!validDv||!validLevel||!validStat||!Number.isInteger(modifier)}/>}
+        <IconButton label="掷骰" icon={<Play size={16} />} onClick={()=>roll()} variant={canContinue?undefined:'primary'} disabled={!validDv||!validLevel||!validStat||!Number.isInteger(modifier)} />
       </div>
       <p className="result-line">{result}</p>
       <p className="hint">具体 DV、技能 x2 成本、战斗例外和装备修正以你导入的正版资料为准。</p>
@@ -2347,6 +2407,7 @@ export function App() {
             <section className="single-workspace">
               <CharacterPanel
                 character={campaign.character}
+                readOnly={campaign.runner.configured}
                 onChange={(character) => updateCampaign({ ...campaign, character })}
               />
             </section>

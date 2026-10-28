@@ -25,5 +25,29 @@ describe('every module and scene playthrough',()=>{
       expect(loaded.character).toEqual(campaign.character);
     }
   });
+  it.each(moduleCatalog)('$id keeps conversation, resolved checks and character resources separate in every scene',module=>{
+    for(const scene of module.scenes){
+      const base=createDefaultCampaign();
+      const campaign=startRunnerCampaign(base,{...base.settings,selectedModuleId:module.id,starterSceneId:scene.id});
+      const conversation=createOfflineGmTurn(campaign,'询问当前情况，不执行风险行动');
+      expect(conversation.checkRequest).toBeUndefined();
+      for(const success of [true,false]){
+        const checked={...campaign,runner:{...campaign.runner,turns:[...campaign.runner.turns,{
+          id:`check-${success}`,type:'check' as const,speaker:'规则判定',body:`觉察：${success?'成功':'失败'}`,createdAt:'',
+          sceneId:scene.id,moduleId:module.id,sceneInstanceId:campaign.currentScene.id,
+          checkResult:{skillName:'觉察',total:success?16:10,dv:13,success},
+        }]}};
+        const before=JSON.stringify(checked);
+        const reply=createOfflineGmTurn(checked,'请根据刚才记录的真实判定结果描述后果并继续。');
+        expect(reply.body).toContain(success?'本次行动检定成功':'本次行动检定失败');
+        expect(reply.checkRequest).toBeUndefined();
+        expect(reply.sceneInstanceId).toBe(campaign.currentScene.id);
+        expect(reply.body).not.toMatch(/undefined|NaN/);
+        if(!success)expect(reply.choices?.every(choice=>choice.kind!=='scene')).toBe(true);
+        expect(JSON.stringify(checked)).toBe(before);
+        expect(checked.character).toEqual(campaign.character);
+      }
+    }
+  });
 });
 

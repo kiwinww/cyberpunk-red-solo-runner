@@ -139,8 +139,10 @@ export function CharacterShop({character,creation,onChange}:Props) {
   if(sort!=='catalog') filtered.sort((a,b)=>sort==='price-asc'?a.price-b.price:sort==='price-desc'?b.price-a.price:a.name.localeCompare(b.name,'zh-CN'));
   return <section className="character-shop" aria-label="装备商店">
     <header className="shop-balance"><div><small>可用欧币</small><strong>{character.eurobucks} eb</strong></div>{creation && <div><small>时装专项剩余</small><strong>{Math.max(0,800-fashionSpent)} eb</strong></div>}</header>
+    <details open={creation}><summary>购买须知</summary>
     <p className="hint">{equipmentCatalogStatus.message}。普通装备直接购买；变价商品先选择数量，义体按部位安装。“待配置”表示程序尚缺具体参数，不是需要人工批准。购买不自动激活程序、装配配件或使用消耗品。</p>
     <p className="hint">当前护甲惩罚 -{armorPenalty(character)}（头身不叠加）；有效反应 {equipmentStats(character).ref} / 敏捷 {equipmentStats(character).dex} / 移动 {equipmentStats(character).move}。护甲购买后沿用当前自动穿戴逻辑。</p>
+    </details>
     <div className="shop-controls">
       <label className="field"><span>查找装备</span><input value={search} onChange={e=>setSearch(e.target.value)} type="search" placeholder="名称或用途" /></label>
       <label className="field"><span>商品分类</span><select aria-label="商品分类" value={category} onChange={e=>{setCategory(e.target.value as ShopCategory|'all');setGroup('all');setLimit(24);}}><option value="all">全部</option>{(Object.keys(SHOP_CATEGORY_LABELS) as ShopCategory[]).filter(c=>c!=='cyberware').map(id=><option key={id} value={id}>{SHOP_CATEGORY_LABELS[id]}</option>)}</select></label>
@@ -190,6 +192,5 @@ export function CyberwareOverview({character}: {character:CharacterSheet}) {
   return <section className="cyber-overview" aria-label="义体人体图">
     <CyberBodyMap character={character} selected={selected} onSelect={setSelected}/>
     <div className="cyber-overview-detail"><strong>{SLOT_LABELS[selected]}</strong>{slot.items.length?<ul>{slot.items.map((item,index)=><li key={`${item.id}-${index}`}><HelpTip label={`${item.name}说明`} text={equipmentHelp(item)}>{item.name}</HelpTip></li>)}</ul>:<p>该部位没有登记已购买的结构化义体。</p>}<small>槽位 {slot.used}/{slot.total} · 人性 {character.humanity.current}/{character.humanity.max}</small></div>
-    {(character.cyberware ?? []).length>0 && <details><summary>所有义体（含旧存档手动登记）</summary><p>{character.cyberware.join('、')}</p></details>}
   </section>;
 }

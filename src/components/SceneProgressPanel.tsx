@@ -3,12 +3,13 @@ import { Campaign } from '../domain/types';
 import { findModule, findScene, recordSceneResolution, selectRunnerScene } from '../lib/runner';
 import { sceneBriefing } from '../data/sceneBriefings';
 import { SkillAnnotatedText } from './SkillAnnotatedText';
+import { HelpTip } from './HelpTip';
 
 export function SceneProgressPanel({campaign,onCampaign}:{campaign:Campaign;onCampaign:(next:Campaign)=>void}) {
   const module=findModule(campaign.runner.moduleId);
   const scene=findScene(module,campaign.runner.sceneId);
   const lastCheck=[...campaign.runner.turns].reverse().find(turn=>turn.type==='check' && turn.sceneId===scene.id && turn.moduleId===module.id && turn.sceneInstanceId===campaign.currentScene.id);
-  const [summary,setSummary]=useState('');
+  const [summary,setSummary]=useState(()=>lastCheck?.checkResult?`${lastCheck.checkResult.skillName}检定${lastCheck.checkResult.success?'成功':'失败'}，总计 ${lastCheck.checkResult.total} / DV ${lastCheck.checkResult.dv}。`:'');
   const [outcome,setOutcome]=useState<'success'|'failure'|'mixed'|'no-check'>(lastCheck?.checkResult ? lastCheck.checkResult.success?'success':'failure' : 'no-check');
   const [target,setTarget]=useState('');
   const [confirmed,setConfirmed]=useState(false);
@@ -38,17 +39,17 @@ export function SceneProgressPanel({campaign,onCampaign}:{campaign:Campaign;onCa
     onCampaign({...campaign,playerNotes:next});setNotice('已加入主持长期记忆。');
   };
   return <section className="scene-progress">
-    <h3>{scene.title} · 场景进展</h3>
+    <h3>{scene.title}</h3>
     <p>{scene.objective}</p>
-    <p><SkillAnnotatedText text={sceneBriefing(module,scene)} character={campaign.character}/></p>
+    <details><summary>背景</summary><p><SkillAnnotatedText text={sceneBriefing(module,scene)} character={campaign.character}/></p></details>
     {lastCheck?.checkResult && <p>最近判定：{lastCheck.checkResult.skillName} {lastCheck.checkResult.total} / DV {lastCheck.checkResult.dv} · {lastCheck.checkResult.success?'成功':'失败'}</p>}
-    <label className="field"><span>本场景已确认的线索或后果</span><textarea aria-label="本场景已确认的线索或后果" rows={3} maxLength={2000} value={summary} onChange={event=>setSummary(event.target.value)} /></label>
-    <label className="field"><span>结果类型</span><select aria-label="场景结果类型" value={outcome} onChange={event=>setOutcome(event.target.value as typeof outcome)}><option value="no-check">无需掷骰的进展</option><option value="success">判定成功</option><option value="failure">判定失败</option><option value="mixed">部分进展 / 复杂后果</option></select></label>
+    <label className="field"><span>本幕结果</span><textarea aria-label="本场景已确认的线索或后果" rows={3} placeholder="例如：已取得邀请，尚未付款。" maxLength={2000} value={summary} onChange={event=>setSummary(event.target.value)} /></label>
+    <details><summary>结果类型 · {outcome==='success'?'判定成功':outcome==='failure'?'判定失败':outcome==='mixed'?'部分进展':'无需掷骰'}</summary><label className="field"><span>结果类型</span><select aria-label="场景结果类型" value={outcome} onChange={event=>setOutcome(event.target.value as typeof outcome)}><option value="no-check">无需掷骰的进展</option><option value="success">判定成功</option><option value="failure">判定失败</option><option value="mixed">部分进展 / 复杂后果</option></select></label></details>
     <button type="button" disabled={!summary.trim()||pending} onClick={save}>记录场景结果</button>
     {recorded && <p>已记录：{recorded.summary}</p>}
     {recorded && <button type="button" disabled={pending} onClick={remember}>加入主持长期记忆</button>}
-    <label><input type="checkbox" checked={confirmed} onChange={event=>setConfirmed(event.target.checked)} />我确认所选分支符合当前线索与进入条件</label>
-    {candidates.length>0 && <div className="scene-routes"><h4>原文指向的后续场景</h4>{candidates.map(next=><button key={next.id} type="button" disabled={(!recorded&&!summary.trim())||!confirmed||pending} onClick={()=>move(next.id)}>{summary.trim()?'记录并前往：':''}{next.title}</button>)}</div>}
+    <label><input type="checkbox" aria-label="满足进入条件" checked={confirmed} onChange={event=>setConfirmed(event.target.checked)} />满足进入条件 <HelpTip label="进入条件说明" text="确认本幕结果已允许前往所选场景。一次判定成功不代表整幕完成；目录顺序也不代表必须依次进入。"/></label>
+    {candidates.length>0 && <div className="scene-routes"><h4>下一幕</h4>{candidates.map(next=><button key={next.id} type="button" disabled={(!recorded&&!summary.trim())||!confirmed||pending} onClick={()=>move(next.id)}>{summary.trim()?'记录并前往：':''}{next.title}</button>)}</div>}
     <details><summary>其他场景索引（包含后续标题）</summary>
       <label className="field"><span>选择已满足条件的场景</span><select aria-label="后续场景索引" value={target} onChange={event=>setTarget(event.target.value)}><option value="">请选择</option>{module.scenes.filter(item=>item.id!==scene.id).map(item=><option key={item.id} value={item.id}>{item.title}</option>)}</select></label>
       <button type="button" disabled={!target||(!recorded&&!summary.trim())||!confirmed||pending} onClick={()=>move(target)}>进入所选场景</button>
